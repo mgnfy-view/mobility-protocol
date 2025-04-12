@@ -137,5 +137,5 @@ Here's a gateway to all my socials, don't forget to hit me up!
 [issues-shield]: https://img.shields.io/github/issues/mgnfy-view/mobility-protocol.svg?style=for-the-badge
 [issues-url]: https://github.com/mgnfy-view/mobility-protocol/issues
 [license-shield]: https://img.shields.io/github/license/mgnfy-view/mobility-protocol.svg?style=for-the-badge
-[license-url]: https://github.com/mgnfy-view/mobility-protocol/blob/master/LICENSE.txt
+[license-url]: https://github.com/mgnfy-view/mobility-protocol/blob/main/LICENSE.txt
 [linktree-url]: https://linktr.ee/mgnfy.view

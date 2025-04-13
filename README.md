@@ -9,7 +9,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <h3 align="center">bearish.fun</h3>
+  <h3 align="center">Mobility Protocol</h3>
 
   <p align="center">
     A Bitcoin collateralized, fixed term, fixed rate lending protocol on Sui

@@ -12,7 +12,7 @@
   <h3 align="center">bearish.fun</h3>
 
   <p align="center">
-    A Bitcoin collateralized fixed term, fixed rate, peer-to-peer lending protocol on Sui
+    A Bitcoin collateralized, fixed term, fixed rate lending protocol on Sui
     <br />
     <a href="https://github.com/mgnfy-view/mobility-protocol/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
@@ -48,7 +48,7 @@
 
 ## About The Project
 
-A Bitcoin collateralized fixed term, fixed rate, peer-to-peer lending protocol on Sui.
+A Bitcoin collateralized, fixed term, fixed rate lending protocol on Sui.
 
 ### Built With
 
@@ -61,7 +61,7 @@ A Bitcoin collateralized fixed term, fixed rate, peer-to-peer lending protocol o
 
 ### Prerequisites
 
-Make sure you have git, rust, sui binaries installed and configured on your system.
+Make sure you have git, rust, and sui binaries installed and configured on your system.
 
 ### Installation
 

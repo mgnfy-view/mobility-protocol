@@ -71,7 +71,7 @@ Clone the repo,
 git clone https://github.com/mgnfy-view/mobility-protocol.git
 ```
 
-cd into the repo, and install the necessary dependencies,
+cd into the repo and build the project,
 
 ```shell
 cd mobility-protocol

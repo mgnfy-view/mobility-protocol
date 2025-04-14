@@ -1,5 +1,6 @@
 module mobility_protocol::attest_deposit;
 
+use mobility_protocol::config;
 use mobility_protocol::constants;
 use mobility_protocol::errors;
 use mobility_protocol::manage_relayers;
@@ -27,12 +28,15 @@ public struct CollateralProof has key {
 
 public struct RelayerAttested has copy, drop {
     relayer: address,
+    user: address,
     attestation_data: AttestationData,
+    attestation_count: u64,
 }
 
 public struct AttestationThresholdPassed has copy, drop {
     user: address,
     attestation_data: AttestationData,
+    attestation_count: u64,
 }
 
 public entry fun create_collateral_proof(
@@ -42,7 +46,7 @@ public entry fun create_collateral_proof(
 ) {
     one_time_witness_registry::use_witness(
         one_time_witness_registry,
-        constants::btc_attestation_domain(),
+        config::btc_attestation_domain(),
         user,
     );
 
@@ -86,31 +90,46 @@ public entry fun attest_btc_deposit(
         attestation_relayer_info.attesting_relayers.add(ctx.sender(), true);
         attestation_relayer_info.attestation_count = attestation_relayer_info.attestation_count + 1;
 
+        event::emit(RelayerAttested {
+            relayer: ctx.sender(),
+            user: collateral_proof.user,
+            attestation_data,
+            attestation_count: attestation_relayer_info.attestation_count,
+        });
+
         let attestation_percentage =
             (
                 (attestation_relayer_info.attestation_count * (constants::basis_points() as u64)) / manage_relayers::get_relayer_count(relayer_registry),
             ) as u16;
         let passing_attestation_threshold =
-            attestation_percentage > constants::attestations_threshold_in_bps();
+            attestation_percentage > config::attestations_threshold_in_bps();
         if (passing_attestation_threshold) {
             attestation_relayer_info.passed = true;
             collateral_proof.btc_collateral_deposited =
                 collateral_proof.btc_collateral_deposited + attestation_data.amount;
         };
 
-        event::emit(AttestationThresholdPassed { user: collateral_proof.user, attestation_data });
+        event::emit(AttestationThresholdPassed {
+            user: collateral_proof.user,
+            attestation_data,
+            attestation_count: attestation_relayer_info.attestation_count,
+        });
     } else {
+        let attestation_count = 1;
+
         let mut attestation_relayer_info = AttestationRelayerInfo {
             attesting_relayers: table::new(ctx),
-            attestation_count: 1,
+            attestation_count,
             passed: false,
         };
         attestation_relayer_info.attesting_relayers.add(ctx.sender(), true);
         collateral_proof.btc_deposits_attestations.add(attestation_data, attestation_relayer_info);
-    };
 
-    event::emit(RelayerAttested {
-        relayer: ctx.sender(),
-        attestation_data,
-    });
+        event::emit(RelayerAttested {
+            relayer: ctx.sender(),
+            user: collateral_proof.user,
+            attestation_data,
+            attestation_count: attestation_count,
+        });
+    };
 }

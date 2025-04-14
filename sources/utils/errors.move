@@ -23,3 +23,15 @@ public fun already_passed_attestation_threshold(): u64 {
 public fun already_used_one_time_witness(): u64 {
     5
 }
+
+public fun invalid_lending_pool_duration(): u64 {
+    6
+}
+
+public fun invalid_interest_rate(): u64 {
+    7
+}
+
+public fun sub_lending_pool_already_exists(): u64 {
+    8
+}

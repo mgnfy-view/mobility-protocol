@@ -1,13 +1,14 @@
 module mobility_protocol::one_time_witness_registry;
 
 use mobility_protocol::errors;
+use sui::bag;
 use sui::table;
 
 public struct ONE_TIME_WITNESS_REGISTRY has drop {}
 
 public struct OneTimeWitnessRegistry has key {
     id: object::UID,
-    registry: table::Table<u16, table::Table<u256, bool>>,
+    registry: table::Table<u16, bag::Bag>,
 }
 
 fun init(_otw: ONE_TIME_WITNESS_REGISTRY, ctx: &mut TxContext) {
@@ -19,10 +20,10 @@ fun init(_otw: ONE_TIME_WITNESS_REGISTRY, ctx: &mut TxContext) {
     transfer::share_object(witness_registry);
 }
 
-public(package) fun use_witness(
+public(package) fun use_witness<T: copy + drop + store>(
     witness_registry: &mut OneTimeWitnessRegistry,
     domain: u16,
-    key: u256,
+    key: T,
 ) {
     let has_used_one_time_witness = get_has_user_used_domain_one_time_witness(
         witness_registry,
@@ -35,18 +36,18 @@ public(package) fun use_witness(
     *has_used_one_time_witness = true;
 }
 
-public fun has_user_used_domain_one_time_witness(
+public fun has_user_used_domain_one_time_witness<T: copy + drop + store>(
     witness_registry: &mut OneTimeWitnessRegistry,
     domain: u16,
-    key: u256,
+    key: T,
 ): bool {
     *get_has_user_used_domain_one_time_witness(witness_registry, domain, key)
 }
 
-fun get_has_user_used_domain_one_time_witness(
+fun get_has_user_used_domain_one_time_witness<T: copy + drop + store>(
     witness_registry: &mut OneTimeWitnessRegistry,
     domain: u16,
-    key: u256,
+    key: T,
 ): &mut bool {
     let one_time_witness_registry_for_domain = witness_registry.registry.borrow_mut(domain);
     let has_used_one_time_witness = one_time_witness_registry_for_domain.borrow_mut(key);

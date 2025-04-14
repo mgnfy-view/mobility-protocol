@@ -23,7 +23,13 @@ public struct CollateralProof has key {
     id: object::UID,
     user: address,
     btc_collateral_deposited: u64, // scaled by 1e9
+    btc_collateral_used: u64,
     btc_deposits_attestations: table::Table<AttestationData, AttestationRelayerInfo>,
+}
+
+public struct CollateralProofCreated has copy, drop {
+    id: object::ID,
+    user: address,
 }
 
 public struct RelayerAttested has copy, drop {
@@ -44,18 +50,25 @@ public entry fun create_collateral_proof(
     user: address,
     ctx: &mut TxContext,
 ) {
-    one_time_witness_registry::use_witness(
+    one_time_witness_registry::use_witness<address>(
         one_time_witness_registry,
         config::btc_attestation_domain(),
-        user.to_u256(),
+        user,
     );
 
     let collateral_proof = CollateralProof {
         id: object::new(ctx),
         user,
         btc_collateral_deposited: 0,
+        btc_collateral_used: 0,
         btc_deposits_attestations: table::new(ctx),
     };
+
+    let collateral_proof_id = collateral_proof.id.to_inner();
+    event::emit(CollateralProofCreated {
+        id: collateral_proof_id,
+        user,
+    });
 
     transfer::share_object(collateral_proof);
 }

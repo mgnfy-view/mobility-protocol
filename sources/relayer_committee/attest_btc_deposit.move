@@ -47,7 +47,7 @@ public entry fun create_collateral_proof(
     one_time_witness_registry::use_witness(
         one_time_witness_registry,
         config::btc_attestation_domain(),
-        user,
+        user.to_u256(),
     );
 
     let collateral_proof = CollateralProof {

@@ -7,7 +7,7 @@ public struct ONE_TIME_WITNESS_REGISTRY has drop {}
 
 public struct OneTimeWitnessRegistry has key {
     id: object::UID,
-    registry: table::Table<u16, table::Table<address, bool>>,
+    registry: table::Table<u16, table::Table<u256, bool>>,
 }
 
 fun init(_otw: ONE_TIME_WITNESS_REGISTRY, ctx: &mut TxContext) {
@@ -22,12 +22,12 @@ fun init(_otw: ONE_TIME_WITNESS_REGISTRY, ctx: &mut TxContext) {
 public(package) fun use_witness(
     witness_registry: &mut OneTimeWitnessRegistry,
     domain: u16,
-    user: address,
+    key: u256,
 ) {
     let has_used_one_time_witness = get_has_user_used_domain_one_time_witness(
         witness_registry,
         domain,
-        user,
+        key,
     );
 
     assert!(!*has_used_one_time_witness, errors::already_used_one_time_witness());
@@ -38,18 +38,18 @@ public(package) fun use_witness(
 public fun has_user_used_domain_one_time_witness(
     witness_registry: &mut OneTimeWitnessRegistry,
     domain: u16,
-    user: address,
+    key: u256,
 ): bool {
-    *get_has_user_used_domain_one_time_witness(witness_registry, domain, user)
+    *get_has_user_used_domain_one_time_witness(witness_registry, domain, key)
 }
 
 fun get_has_user_used_domain_one_time_witness(
     witness_registry: &mut OneTimeWitnessRegistry,
     domain: u16,
-    user: address,
+    key: u256,
 ): &mut bool {
     let one_time_witness_registry_for_domain = witness_registry.registry.borrow_mut(domain);
-    let has_used_one_time_witness = one_time_witness_registry_for_domain.borrow_mut(user);
+    let has_used_one_time_witness = one_time_witness_registry_for_domain.borrow_mut(key);
 
     has_used_one_time_witness
 }

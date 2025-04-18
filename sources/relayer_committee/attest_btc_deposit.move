@@ -1,4 +1,4 @@
-module mobility_protocol::attest_deposit;
+module mobility_protocol::attest_btc_deposit;
 
 use mobility_protocol::config;
 use mobility_protocol::constants;
@@ -60,6 +60,7 @@ public entry fun create_collateral_proof(
         one_time_witness_registry,
         config::btc_attestation_domain(),
         user,
+        ctx,
     );
 
     let collateral_proof = CollateralProof {
@@ -152,4 +153,74 @@ public entry fun attest_btc_deposit(
             attestation_count: attestation_count,
         });
     };
+}
+
+// ===== View functions =====
+
+public fun get_user(collateral_proof: &CollateralProof): address {
+    collateral_proof.user
+}
+
+public fun get_btc_collateral_deposited(collateral_proof: &CollateralProof): u64 {
+    collateral_proof.btc_collateral_deposited
+}
+
+public fun get_btc_collateral_used(collateral_proof: &CollateralProof): u64 {
+    collateral_proof.btc_collateral_used
+}
+
+public fun has_relayer_attested(
+    collateral_proof: &CollateralProof,
+    btc_txn_hash: vector<u8>,
+    amount: u64,
+    relayer: address,
+): bool {
+    let attestation_data = AttestationData {
+        btc_txn_hash,
+        amount,
+    };
+
+    if (collateral_proof.btc_deposits_attestations.contains(attestation_data)) {
+        collateral_proof
+            .btc_deposits_attestations
+            .borrow(attestation_data)
+            .attesting_relayers
+            .contains(relayer)
+    } else {
+        false
+    }
+}
+
+public fun get_attestation_count(
+    collateral_proof: &CollateralProof,
+    btc_txn_hash: vector<u8>,
+    amount: u64,
+): u64 {
+    let attestation_data = AttestationData {
+        btc_txn_hash,
+        amount,
+    };
+
+    if (collateral_proof.btc_deposits_attestations.contains(attestation_data)) {
+        collateral_proof.btc_deposits_attestations.borrow(attestation_data).attestation_count
+    } else {
+        0
+    }
+}
+
+public fun has_attestation_passed(
+    collateral_proof: &CollateralProof,
+    btc_txn_hash: vector<u8>,
+    amount: u64,
+): bool {
+    let attestation_data = AttestationData {
+        btc_txn_hash,
+        amount,
+    };
+
+    if (collateral_proof.btc_deposits_attestations.contains(attestation_data)) {
+        collateral_proof.btc_deposits_attestations.borrow(attestation_data).passed
+    } else {
+        false
+    }
 }

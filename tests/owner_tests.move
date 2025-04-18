@@ -5,7 +5,7 @@ use mobility_protocol::owner;
 use mobility_protocol::test_base;
 
 #[test]
-public fun owner_cap_object_created_successfully() {
+public fun creating_owner_cap_object_succeeds() {
     let global_state = test_base::setup();
 
     let global_state = test_base::forward_scenario(global_state, test_base::OWNER());

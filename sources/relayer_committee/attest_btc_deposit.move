@@ -8,6 +8,8 @@ use mobility_protocol::one_time_witness_registry;
 use sui::event;
 use sui::table;
 
+// ===== Global storage structs =====
+
 public struct AttestationData has copy, drop, store {
     btc_txn_hash: vector<u8>,
     amount: u64,
@@ -27,6 +29,8 @@ public struct CollateralProof has key {
     btc_deposits_attestations: table::Table<AttestationData, AttestationRelayerInfo>,
 }
 
+// ===== Events =====
+
 public struct CollateralProofCreated has copy, drop {
     id: object::ID,
     user: address,
@@ -44,6 +48,8 @@ public struct AttestationThresholdPassed has copy, drop {
     attestation_data: AttestationData,
     attestation_count: u64,
 }
+
+// ===== Public functions =====
 
 public entry fun create_collateral_proof(
     one_time_witness_registry: &mut one_time_witness_registry::OneTimeWitnessRegistry,
@@ -81,7 +87,7 @@ public entry fun attest_btc_deposit(
     ctx: &mut TxContext,
 ) {
     assert!(
-        manage_relayers::is_whitelisted_relayer(relayer_registry, ctx),
+        manage_relayers::is_whitelisted_relayer(relayer_registry, ctx.sender()),
         errors::not_whitelisted_relayer(),
     );
     assert!(amount > 0, errors::amount_zero());
@@ -112,7 +118,8 @@ public entry fun attest_btc_deposit(
 
         let attestation_percentage =
             (
-                (attestation_relayer_info.attestation_count * (constants::basis_points() as u64)) / manage_relayers::get_relayer_count(relayer_registry),
+                (attestation_relayer_info.attestation_count * (constants::BASIS_POINTS() as u64))
+                    / manage_relayers::get_relayer_count(relayer_registry),
             ) as u16;
         let passing_attestation_threshold =
             attestation_percentage > config::attestations_threshold_in_bps();

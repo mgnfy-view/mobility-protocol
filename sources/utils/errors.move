@@ -1,5 +1,7 @@
 module mobility_protocol::errors;
 
+// ===== View functions =====
+
 public fun relayer_status_update_not_required(): u64 {
     0
 }

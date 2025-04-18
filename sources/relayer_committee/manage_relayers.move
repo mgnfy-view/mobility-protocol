@@ -5,7 +5,11 @@ use mobility_protocol::owner;
 use sui::event;
 use sui::table;
 
+// ===== One time witness structs =====
+
 public struct MANAGE_RELAYERS has drop {}
+
+// ===== Global storage structs =====
 
 public struct RelayerRegistry has key {
     id: object::UID,
@@ -13,23 +17,17 @@ public struct RelayerRegistry has key {
     relayer_count: u64,
 }
 
+// ===== Events =====
+
 public struct RelayerSet has copy, drop {
     relayer: address,
     is_active: bool,
 }
 
-fun init(_otw: MANAGE_RELAYERS, ctx: &mut TxContext) {
-    let relayer_registry = RelayerRegistry {
-        id: object::new(ctx),
-        relayers: table::new(ctx),
-        relayer_count: 0,
-    };
-
-    transfer::share_object(relayer_registry);
-}
+// ===== Public functions =====
 
 public entry fun set_relayer(
-    _owner_cap: &mut owner::OwnerCap,
+    _owner_cap: &owner::OwnerCap,
     relayer_registry: &mut RelayerRegistry,
     relayer: address,
     is_active: bool,
@@ -57,19 +55,40 @@ public entry fun set_relayer(
     });
 }
 
-public fun get_relayer_count(relayer_registry: &mut RelayerRegistry): u64 {
+// ===== View functions =====
+
+public fun get_relayer_count(relayer_registry: &RelayerRegistry): u64 {
     relayer_registry.relayer_count
 }
 
-public fun is_whitelisted_relayer(
-    relayer_registry: &mut RelayerRegistry,
-    ctx: &mut TxContext,
-): bool {
+public fun is_whitelisted_relayer(relayer_registry: &RelayerRegistry, user: address): bool {
     if (
-        !relayer_registry.relayers.contains(ctx.sender()) || !*relayer_registry.relayers.borrow(ctx.sender())
+        !relayer_registry.relayers.contains(user)
+            || !*relayer_registry.relayers.borrow(user)
     ) {
         false
     } else {
         true
     }
+}
+
+// ===== Private functions =====
+
+fun init(_otw: MANAGE_RELAYERS, ctx: &mut TxContext) {
+    let relayer_registry = RelayerRegistry {
+        id: object::new(ctx),
+        relayers: table::new(ctx),
+        relayer_count: 0,
+    };
+
+    transfer::share_object(relayer_registry);
+}
+
+// ===== Test only =====
+
+#[test_only]
+public fun init_for_testing(ctx: &mut TxContext) {
+    let otw = MANAGE_RELAYERS {};
+
+    init(otw, ctx);
 }

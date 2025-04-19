@@ -37,3 +37,7 @@ public fun invalid_interest_rate(): u64 {
 public fun sub_lending_pool_already_exists(): u64 {
     8
 }
+
+public fun insufficient_liquidity(): u64 {
+    9
+}

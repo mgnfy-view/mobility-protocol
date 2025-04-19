@@ -205,3 +205,14 @@ public(package) fun receive_coins_for_lending_pool<CoinType>(
 
     amount
 }
+
+public(package) fun withdraw_coins_from_lending_pool<CoinType>(
+    lending_pool_wrapper: &mut LendingPoolWrapper<CoinType>,
+    amount: u64,
+    user: address,
+    ctx: &mut TxContext,
+) {
+    let coin = lending_pool_wrapper.balance.split(amount).into_coin(ctx);
+
+    transfer::public_transfer(coin, user);
+}

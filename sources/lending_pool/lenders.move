@@ -3,6 +3,7 @@ module mobility_protocol::supply;
 use mobility_protocol::accrue_interest;
 use mobility_protocol::config;
 use mobility_protocol::create_lending_pools;
+use mobility_protocol::errors;
 use mobility_protocol::one_time_witness_registry;
 use mobility_protocol::utils;
 use sui::clock;
@@ -31,6 +32,14 @@ public struct PositionCreated has copy, drop {
 }
 
 public struct Supplied has copy, drop {
+    lending_pool_wrapper_id: object::ID,
+    user: address,
+    sub_lending_pool_parameters: create_lending_pools::SubLendingPoolParameters,
+    amount: u64,
+    shares: u64,
+}
+
+public struct Withdrawn has copy, drop {
     lending_pool_wrapper_id: object::ID,
     user: address,
     sub_lending_pool_parameters: create_lending_pools::SubLendingPoolParameters,
@@ -101,6 +110,7 @@ public entry fun supply<CoinType>(
         lending_pool_wrapper,
         receiving_coin,
     );
+    assert!(amount > 0, errors::amount_zero());
 
     let (
         mut total_supply_coins,
@@ -139,6 +149,79 @@ public entry fun supply<CoinType>(
         interest_rate_in_bps,
     );
     event::emit(Supplied {
+        lending_pool_wrapper_id: create_lending_pools::get_lending_pool_wrapper_id(
+            lending_pool_wrapper,
+        ),
+        user: ctx.sender(),
+        sub_lending_pool_parameters,
+        amount,
+        shares,
+    });
+}
+
+public entry fun withdraw<CoinType>(
+    lending_pool_wrapper: &mut create_lending_pools::LendingPoolWrapper<CoinType>,
+    position: &mut Position,
+    clock: &clock::Clock,
+    amount: u64,
+    lending_duration: u64,
+    interest_rate_in_bps: u16,
+    ctx: &mut TxContext,
+) {
+    assert!(amount > 0, errors::amount_zero());
+
+    accrue_interest::accrue_interest(
+        lending_pool_wrapper,
+        clock,
+        lending_duration,
+        interest_rate_in_bps,
+    );
+
+    let (
+        mut total_supply_coins,
+        mut total_supply_shares,
+        total_borrow_coins,
+        total_borrow_shares,
+        _,
+    ) = create_lending_pools::get_sub_lending_pool_info<CoinType>(
+        lending_pool_wrapper,
+        lending_duration,
+        interest_rate_in_bps,
+    );
+    let shares = utils::mul_div_u64(
+        amount,
+        total_supply_shares + config::virtual_shares(),
+        total_supply_coins + config::virtual_coins(),
+    );
+
+    position.supply_shares = position.supply_shares - shares;
+    total_supply_coins = total_supply_coins - amount;
+    total_supply_shares = total_supply_shares - shares;
+
+    assert!(total_supply_coins >= total_borrow_coins, errors::insufficient_liquidity());
+
+    create_lending_pools::update_sub_lending_pool_info(
+        lending_pool_wrapper,
+        clock,
+        lending_duration,
+        interest_rate_in_bps,
+        total_supply_coins,
+        total_supply_shares,
+        total_borrow_coins,
+        total_borrow_shares,
+    );
+    create_lending_pools::withdraw_coins_from_lending_pool(
+        lending_pool_wrapper,
+        amount,
+        ctx.sender(),
+        ctx,
+    );
+
+    let sub_lending_pool_parameters = create_lending_pools::get_sub_lending_pool_parameters_object(
+        lending_duration,
+        interest_rate_in_bps,
+    );
+    event::emit(Withdrawn {
         lending_pool_wrapper_id: create_lending_pools::get_lending_pool_wrapper_id(
             lending_pool_wrapper,
         ),

@@ -13,3 +13,7 @@ public fun BTC_AMOUNT_SCALING_FACTOR(): u64 {
 public fun MILLISECONDS_PER_SECOND(): u64 {
     1_000
 }
+
+public fun SECONDS_IN_A_YEAR(): u64 {
+    29_030_400
+}

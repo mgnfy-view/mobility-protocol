@@ -33,3 +33,11 @@ public fun interest_rate_increment_in_bps(): u64 {
 public fun platform_fee_in_bps(): u64 {
     1_000
 }
+
+public fun virtual_coins(): u64 {
+    1
+}
+
+public fun virtual_shares(): u64 {
+    1_000
+}

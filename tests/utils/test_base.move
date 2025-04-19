@@ -2,6 +2,7 @@
 module mobility_protocol::test_base;
 
 use mobility_protocol::attest_btc_deposit;
+use mobility_protocol::create_lending_pools;
 use mobility_protocol::manage_relayers;
 use mobility_protocol::one_time_witness_registry;
 use mobility_protocol::owner;
@@ -123,6 +124,44 @@ public fun attest_btc_deposit(scenario: &mut ts::Scenario, btc_txn_hash: vector<
 
     ts::return_shared(relayer_registry);
     ts::return_shared(collateral_proof);
+}
+
+public fun create_lending_pool_wrapper<CoinType>(scenario: &mut ts::Scenario) {
+    let owner_cap = scenario.take_from_sender<owner::OwnerCap>();
+    let mut one_time_witness_registry = scenario.take_shared<
+        one_time_witness_registry::OneTimeWitnessRegistry,
+    >();
+
+    create_lending_pools::create_lending_pool_wrapper<CoinType>(
+        &owner_cap,
+        &mut one_time_witness_registry,
+        scenario.ctx(),
+    );
+
+    ts::return_to_sender(scenario, owner_cap);
+    ts::return_shared(one_time_witness_registry);
+}
+
+public fun create_sub_lending_pool<CoinType>(
+    scenario: &mut ts::Scenario,
+    lending_duration: u64,
+    interest_rate_in_bps: u16,
+    clock: &clock::Clock,
+) {
+    let owner_cap = scenario.take_from_sender<owner::OwnerCap>();
+    let mut lending_pool_wrapper = scenario.take_shared<
+        create_lending_pools::LendingPoolWrapper<CoinType>,
+    >();
+
+    create_lending_pools::create_sub_lending_pool<CoinType>(
+        &mut lending_pool_wrapper,
+        clock,
+        lending_duration,
+        interest_rate_in_bps,
+    );
+
+    ts::return_to_sender(scenario, owner_cap);
+    ts::return_shared(lending_pool_wrapper);
 }
 
 public fun USER_1(): address { @0x12345 }

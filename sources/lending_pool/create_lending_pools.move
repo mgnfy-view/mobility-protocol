@@ -14,6 +14,15 @@ use sui::table;
 
 // ===== Global storage structs =====
 
+public struct LendingPoolWrapper<phantom CoinType> has key {
+    id: object::UID,
+    balance: balance::Balance<CoinType>,
+    ltv: u16,
+    grace_period: u64,
+    aggregator_id: object::ID,
+    sub_lending_pools: table::Table<SubLendingPoolParameters, SubLendingPoolInfo>,
+}
+
 public struct SubLendingPoolParameters has copy, drop, store {
     lending_duration: u64,
     interest_rate_in_bps: u16,
@@ -25,12 +34,6 @@ public struct SubLendingPoolInfo has store {
     total_borrow_coins: u64,
     total_borrow_shares: u64,
     last_update_timestamp: u64,
-}
-
-public struct LendingPoolWrapper<phantom CoinType> has key {
-    id: object::UID,
-    balance: balance::Balance<CoinType>,
-    sub_lending_pools: table::Table<SubLendingPoolParameters, SubLendingPoolInfo>,
 }
 
 public struct CoinKey<phantom CoinType> has copy, drop, store {}
@@ -47,35 +50,17 @@ public struct SubLendingPoolCreated has copy, drop {
     sub_lending_pool_parameters: SubLendingPoolParameters,
 }
 
-// ===== Public functions =====
-
-public entry fun create_lending_pool_wrapper<CoinType>(
-    _owner_cap: &owner::OwnerCap,
-    one_time_witness_registry: &mut one_time_witness_registry::OneTimeWitnessRegistry,
-    ctx: &mut TxContext,
-) {
-    let coin_key = CoinKey<CoinType> {};
-    one_time_witness_registry::use_witness<CoinKey<CoinType>>(
-        one_time_witness_registry,
-        config::lending_pool_creation_domain(),
-        coin_key,
-        ctx,
-    );
-
-    let lending_pool_wrapper = LendingPoolWrapper {
-        id: object::new(ctx),
-        balance: balance::zero<CoinType>(),
-        sub_lending_pools: table::new(ctx),
-    };
-
-    let lending_pool_wrapper_id = lending_pool_wrapper.id.to_inner();
-    event::emit(LendingPoolWrapperCreated {
-        id: lending_pool_wrapper_id,
-        coin_key,
-    });
-
-    transfer::share_object(lending_pool_wrapper);
+public struct LtvUpdated has copy, drop {
+    lending_pool_wrapper_id: object::ID,
+    ltv: u16,
 }
+
+public struct AggregatorIdUpdated has copy, drop {
+    lending_pool_wrapper_id: object::ID,
+    aggregator_id: object::ID,
+}
+
+// ===== Public functions =====
 
 public entry fun create_sub_lending_pool<CoinType>(
     lending_pool_wrapper: &mut LendingPoolWrapper<CoinType>,
@@ -121,10 +106,15 @@ public entry fun create_sub_lending_pool<CoinType>(
 
 // ===== View functions =====
 
-public fun get_lending_pool_balance<CoinType>(
+public fun get_lending_pool_info<CoinType>(
     lending_pool_wrapper: &LendingPoolWrapper<CoinType>,
-): u64 {
-    lending_pool_wrapper.balance.value()
+): (u64, u16, u64, object::ID) {
+    (
+        lending_pool_wrapper.balance.value(),
+        lending_pool_wrapper.ltv,
+        lending_pool_wrapper.grace_period,
+        lending_pool_wrapper.aggregator_id,
+    )
 }
 
 public fun get_sub_lending_pool_info<CoinType>(
@@ -137,25 +127,96 @@ public fun get_sub_lending_pool_info<CoinType>(
         interest_rate_in_bps,
     };
 
-    let sub_lending_pool_info = lending_pool_wrapper
-        .sub_lending_pools
-        .borrow(sub_lending_pool_parameters);
+    if (lending_pool_wrapper.sub_lending_pools.contains(sub_lending_pool_parameters)) {
+        let sub_lending_pool_info = lending_pool_wrapper
+            .sub_lending_pools
+            .borrow(sub_lending_pool_parameters);
 
-    (
-        sub_lending_pool_info.total_supply_coins,
-        sub_lending_pool_info.total_supply_shares,
-        sub_lending_pool_info.total_borrow_coins,
-        sub_lending_pool_info.total_borrow_shares,
-        sub_lending_pool_info.last_update_timestamp,
-    )
+        (
+            sub_lending_pool_info.total_supply_coins,
+            sub_lending_pool_info.total_supply_shares,
+            sub_lending_pool_info.total_borrow_coins,
+            sub_lending_pool_info.total_borrow_shares,
+            sub_lending_pool_info.last_update_timestamp,
+        )
+    } else {
+        (0, 0, 0, 0, 0)
+    }
+}
+
+// ===== Admin functions =====
+
+public entry fun create_lending_pool_wrapper<CoinType>(
+    _owner_cap: &owner::OwnerCap,
+    one_time_witness_registry: &mut one_time_witness_registry::OneTimeWitnessRegistry,
+    ltv: u16, // should be in bps
+    grace_period: u64,
+    aggregator_id: object::ID,
+    ctx: &mut TxContext,
+) {
+    let coin_key = CoinKey<CoinType> {};
+    one_time_witness_registry.use_witness<CoinKey<CoinType>>(
+        config::lending_pool_creation_domain(),
+        coin_key,
+        ctx,
+    );
+
+    let lending_pool_wrapper = LendingPoolWrapper {
+        id: object::new(ctx),
+        balance: balance::zero<CoinType>(),
+        ltv,
+        grace_period,
+        aggregator_id,
+        sub_lending_pools: table::new(ctx),
+    };
+
+    event::emit(LendingPoolWrapperCreated {
+        id: lending_pool_wrapper.id.to_inner(),
+        coin_key,
+    });
+
+    transfer::share_object(lending_pool_wrapper);
+}
+
+public entry fun update_lending_pool_ltv<CoinType>(
+    _owner_cap: &owner::OwnerCap,
+    lending_pool_wrapper: &mut LendingPoolWrapper<CoinType>,
+    ltv: u16,
+) {
+    lending_pool_wrapper.ltv = ltv;
+
+    event::emit(LtvUpdated {
+        lending_pool_wrapper_id: lending_pool_wrapper.id.to_inner(),
+        ltv,
+    });
+}
+
+public entry fun update_lending_pool_switchboard_aggregator_id<CoinType>(
+    _owner_cap: &owner::OwnerCap,
+    lending_pool_wrapper: &mut LendingPoolWrapper<CoinType>,
+    aggregator_id: object::ID,
+) {
+    lending_pool_wrapper.aggregator_id = aggregator_id;
+
+    event::emit(AggregatorIdUpdated {
+        lending_pool_wrapper_id: lending_pool_wrapper.id.to_inner(),
+        aggregator_id,
+    });
 }
 
 // ===== Package functions =====
 
-public(package) fun get_lending_pool_wrapper_id<CoinType>(
+public(package) fun get_lending_pool_id<CoinType>(
     lending_pool_wrapper: &LendingPoolWrapper<CoinType>,
 ): object::ID {
-    let LendingPoolWrapper { id: uid, balance: _, sub_lending_pools: _ } = lending_pool_wrapper;
+    let LendingPoolWrapper {
+        id: uid,
+        balance: _,
+        ltv: _,
+        grace_period: _,
+        aggregator_id: _,
+        sub_lending_pools: _,
+    } = lending_pool_wrapper;
 
     uid.to_inner()
 }

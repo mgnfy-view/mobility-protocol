@@ -24,7 +24,18 @@ public struct RelayerSet has copy, drop {
     is_active: bool,
 }
 
-// ===== Public functions =====
+// ===== View functions =====
+
+public fun get_relayer_count(relayer_registry: &RelayerRegistry): u64 {
+    relayer_registry.relayer_count
+}
+
+public fun is_whitelisted_relayer(relayer_registry: &RelayerRegistry, user: address): bool {
+    relayer_registry.relayers.contains(user)
+            && *relayer_registry.relayers.borrow(user)
+}
+
+// ===== Admin functions =====
 
 public entry fun set_relayer(
     _owner_cap: &owner::OwnerCap,
@@ -53,23 +64,6 @@ public entry fun set_relayer(
         relayer,
         is_active,
     });
-}
-
-// ===== View functions =====
-
-public fun get_relayer_count(relayer_registry: &RelayerRegistry): u64 {
-    relayer_registry.relayer_count
-}
-
-public fun is_whitelisted_relayer(relayer_registry: &RelayerRegistry, user: address): bool {
-    if (
-        !relayer_registry.relayers.contains(user)
-            || !*relayer_registry.relayers.borrow(user)
-    ) {
-        false
-    } else {
-        true
-    }
 }
 
 // ===== Private functions =====

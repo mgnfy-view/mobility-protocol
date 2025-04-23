@@ -5,10 +5,19 @@ use mobility_protocol::constants;
 use mobility_protocol::errors;
 use mobility_protocol::manage_relayers;
 use mobility_protocol::one_time_witness_registry;
+use mobility_protocol::utils;
 use sui::event;
 use sui::table;
 
 // ===== Global storage structs =====
+
+public struct CollateralProof has key {
+    id: object::UID,
+    user: address,
+    btc_collateral_deposited: u64, // scaled by 1e9
+    btc_collateral_used: u64,
+    btc_deposits_attestations: table::Table<AttestationData, AttestationRelayerInfo>,
+}
 
 public struct AttestationData has copy, drop, store {
     btc_txn_hash: vector<u8>,
@@ -19,14 +28,6 @@ public struct AttestationRelayerInfo has store {
     attesting_relayers: table::Table<address, bool>,
     attestation_count: u64,
     passed: bool,
-}
-
-public struct CollateralProof has key {
-    id: object::UID,
-    user: address,
-    btc_collateral_deposited: u64, // scaled by 1e9
-    btc_collateral_used: u64,
-    btc_deposits_attestations: table::Table<AttestationData, AttestationRelayerInfo>,
 }
 
 // ===== Events =====
@@ -49,6 +50,12 @@ public struct AttestationThresholdPassed has copy, drop {
     attestation_count: u64,
 }
 
+public struct WithdrawRequest has copy, drop {
+    user: address,
+    btc_address: vector<u8>,
+    amount: u64,
+}
+
 // ===== Public functions =====
 
 public entry fun create_collateral_proof(
@@ -56,13 +63,11 @@ public entry fun create_collateral_proof(
     user: address,
     ctx: &mut TxContext,
 ) {
-    one_time_witness_registry::use_witness<address>(
-        one_time_witness_registry,
+    one_time_witness_registry.use_witness<address>(
         config::btc_attestation_domain(),
         user,
         ctx,
     );
-
     let collateral_proof = CollateralProof {
         id: object::new(ctx),
         user,
@@ -71,9 +76,8 @@ public entry fun create_collateral_proof(
         btc_deposits_attestations: table::new(ctx),
     };
 
-    let collateral_proof_id = collateral_proof.id.to_inner();
     event::emit(CollateralProofCreated {
-        id: collateral_proof_id,
+        id: collateral_proof.id.to_inner(),
         user,
     });
 
@@ -88,7 +92,7 @@ public entry fun attest_btc_deposit(
     ctx: &mut TxContext,
 ) {
     assert!(
-        manage_relayers::is_whitelisted_relayer(relayer_registry, ctx.sender()),
+        relayer_registry.is_whitelisted_relayer(ctx.sender()),
         errors::not_whitelisted_relayer(),
     );
     assert!(amount > 0, errors::amount_zero());
@@ -119,8 +123,11 @@ public entry fun attest_btc_deposit(
 
         let attestation_percentage =
             (
-                (attestation_relayer_info.attestation_count * (constants::BASIS_POINTS() as u64))
-                    / manage_relayers::get_relayer_count(relayer_registry),
+                utils::mul_div_u64(
+                    attestation_relayer_info.attestation_count,
+                    (constants::BASIS_POINTS() as u64),
+                    relayer_registry.get_relayer_count(),
+                ),
             ) as u16;
         let passing_attestation_threshold =
             attestation_percentage > config::attestations_threshold_in_bps();
@@ -155,18 +162,32 @@ public entry fun attest_btc_deposit(
     };
 }
 
+public entry fun withdraw_btc(
+    collateral_proof: &mut CollateralProof,
+    amount: u64,
+    btc_address: vector<u8>,
+) {
+    let max_withdrawable_amount =
+        collateral_proof.btc_collateral_deposited - collateral_proof.btc_collateral_used;
+    assert!(amount <= max_withdrawable_amount, errors::insufficient_balance());
+
+    collateral_proof.btc_collateral_deposited = collateral_proof.btc_collateral_deposited - amount;
+
+    event::emit(WithdrawRequest {
+        user: collateral_proof.user,
+        btc_address,
+        amount,
+    });
+}
+
 // ===== View functions =====
 
-public fun get_user(collateral_proof: &CollateralProof): address {
-    collateral_proof.user
-}
-
-public fun get_btc_collateral_deposited(collateral_proof: &CollateralProof): u64 {
-    collateral_proof.btc_collateral_deposited
-}
-
-public fun get_btc_collateral_used(collateral_proof: &CollateralProof): u64 {
-    collateral_proof.btc_collateral_used
+public fun get_collateral_proof_info(collateral_proof: &CollateralProof): (address, u64, u64) {
+    (
+        collateral_proof.user,
+        collateral_proof.btc_collateral_deposited,
+        collateral_proof.btc_collateral_used,
+    )
 }
 
 public fun has_relayer_attested(
@@ -223,4 +244,10 @@ public fun has_attestation_passed(
     } else {
         false
     }
+}
+
+// ===== Package functions =====
+
+public(package) fun use_btc_collateral(collateral_proof: &mut CollateralProof, amount: u64) {
+    collateral_proof.btc_collateral_used = collateral_proof.btc_collateral_used + amount;
 }

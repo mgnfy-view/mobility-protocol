@@ -39,11 +39,11 @@ public entry fun accrue_interest<CoinType>(
     if (elapsed_time == 0) return;
 
     let interest =
-        utils::mul_div_u64(
-        total_borrow_coins,
-        interest_rate_in_bps as u64,
-        elapsed_time,
-    ) / (constants::BASIS_POINTS() as u64 * constants::SECONDS_IN_A_YEAR());
+        utils::mul_div_u128(
+            total_borrow_coins as u128,
+            utils::get_taylor_compounded(interest_rate_in_bps, elapsed_time),
+            constants::COMPOUND_INTEREST_SCALING_FACTOR() as u128,
+        ) as u64;
     total_supply_coins = total_supply_coins + interest;
     total_borrow_coins = total_borrow_coins + interest;
     create_lending_pools::update_sub_lending_pool_info(
@@ -62,7 +62,7 @@ public entry fun accrue_interest<CoinType>(
         interest_rate_in_bps,
     );
     event::emit(InterestAccrued {
-        lending_pool_wrapper_id: create_lending_pools::get_lending_pool_wrapper_id(
+        lending_pool_wrapper_id: create_lending_pools::get_lending_pool_id(
             lending_pool_wrapper,
         ),
         sub_lending_pool_parameters,

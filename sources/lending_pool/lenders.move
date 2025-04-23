@@ -1,4 +1,4 @@
-module mobility_protocol::supply;
+module mobility_protocol::lenders;
 
 use mobility_protocol::accrue_interest;
 use mobility_protocol::config;
@@ -56,19 +56,12 @@ public entry fun create_position<CoinType>(
     interest_rate_in_bps: u16,
     ctx: &mut TxContext,
 ) {
-    let lending_pool_wrapper_id = create_lending_pools::get_lending_pool_wrapper_id(
-        lending_pool_wrapper,
-    );
+    let lending_pool_wrapper_id = lending_pool_wrapper.get_lending_pool_id();
     let position_key = PositionKey {
         lending_pool_wrapper_id,
         user: ctx.sender(),
     };
-    one_time_witness_registry::use_witness(
-        one_time_witness_registry,
-        config::supply_domain(),
-        position_key,
-        ctx,
-    );
+    one_time_witness_registry.use_witness(config::lenders_domain(), position_key, ctx);
 
     let sub_lending_pool_parameters = create_lending_pools::get_sub_lending_pool_parameters_object(
         lending_duration,
@@ -99,6 +92,11 @@ public entry fun supply<CoinType>(
     receiving_coin: transfer::Receiving<sui::coin::Coin<CoinType>>,
     ctx: &mut TxContext,
 ) {
+    assert!(
+        lending_pool_wrapper.get_lending_pool_id() == position.id.to_inner(),
+        errors::invalid_position(),
+    );
+
     accrue_interest::accrue_interest(
         lending_pool_wrapper,
         clock,
@@ -106,10 +104,7 @@ public entry fun supply<CoinType>(
         interest_rate_in_bps,
     );
 
-    let amount = create_lending_pools::receive_coins_for_lending_pool(
-        lending_pool_wrapper,
-        receiving_coin,
-    );
+    let amount = lending_pool_wrapper.receive_coins_for_lending_pool(receiving_coin);
     assert!(amount > 0, errors::amount_zero());
 
     let (
@@ -118,8 +113,7 @@ public entry fun supply<CoinType>(
         total_borrow_coins,
         total_borrow_shares,
         _,
-    ) = create_lending_pools::get_sub_lending_pool_info<CoinType>(
-        lending_pool_wrapper,
+    ) = lending_pool_wrapper.get_sub_lending_pool_info<CoinType>(
         lending_duration,
         interest_rate_in_bps,
     );
@@ -133,8 +127,7 @@ public entry fun supply<CoinType>(
     total_supply_coins = total_supply_coins + amount;
     total_supply_shares = total_supply_shares + shares;
 
-    create_lending_pools::update_sub_lending_pool_info(
-        lending_pool_wrapper,
+    lending_pool_wrapper.update_sub_lending_pool_info(
         clock,
         lending_duration,
         interest_rate_in_bps,
@@ -149,9 +142,7 @@ public entry fun supply<CoinType>(
         interest_rate_in_bps,
     );
     event::emit(Supplied {
-        lending_pool_wrapper_id: create_lending_pools::get_lending_pool_wrapper_id(
-            lending_pool_wrapper,
-        ),
+        lending_pool_wrapper_id: lending_pool_wrapper.get_lending_pool_id(),
         user: ctx.sender(),
         sub_lending_pool_parameters,
         amount,
@@ -183,8 +174,7 @@ public entry fun withdraw<CoinType>(
         total_borrow_coins,
         total_borrow_shares,
         _,
-    ) = create_lending_pools::get_sub_lending_pool_info<CoinType>(
-        lending_pool_wrapper,
+    ) = lending_pool_wrapper.get_sub_lending_pool_info<CoinType>(
         lending_duration,
         interest_rate_in_bps,
     );
@@ -200,8 +190,7 @@ public entry fun withdraw<CoinType>(
 
     assert!(total_supply_coins >= total_borrow_coins, errors::insufficient_liquidity());
 
-    create_lending_pools::update_sub_lending_pool_info(
-        lending_pool_wrapper,
+    lending_pool_wrapper.update_sub_lending_pool_info(
         clock,
         lending_duration,
         interest_rate_in_bps,
@@ -210,21 +199,14 @@ public entry fun withdraw<CoinType>(
         total_borrow_coins,
         total_borrow_shares,
     );
-    create_lending_pools::withdraw_coins_from_lending_pool(
-        lending_pool_wrapper,
-        amount,
-        ctx.sender(),
-        ctx,
-    );
+    lending_pool_wrapper.withdraw_coins_from_lending_pool(amount, ctx.sender(), ctx);
 
     let sub_lending_pool_parameters = create_lending_pools::get_sub_lending_pool_parameters_object(
         lending_duration,
         interest_rate_in_bps,
     );
     event::emit(Withdrawn {
-        lending_pool_wrapper_id: create_lending_pools::get_lending_pool_wrapper_id(
-            lending_pool_wrapper,
-        ),
+        lending_pool_wrapper_id: lending_pool_wrapper.get_lending_pool_id(),
         user: ctx.sender(),
         sub_lending_pool_parameters,
         amount,

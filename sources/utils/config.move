@@ -10,8 +10,12 @@ public fun lending_pool_creation_domain(): u16 {
     2
 }
 
-public fun supply_domain(): u16 {
+public fun lenders_domain(): u16 {
     3
+}
+
+public fun platform_fee_in_bps(): u64 {
+    1_000
 }
 
 public fun attestations_threshold_in_bps(): u16 {
@@ -28,10 +32,6 @@ public fun max_lending_duration(): u64 {
 
 public fun interest_rate_increment_in_bps(): u64 {
     100
-}
-
-public fun platform_fee_in_bps(): u64 {
-    1_000
 }
 
 public fun virtual_coins(): u64 {

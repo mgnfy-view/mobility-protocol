@@ -8,6 +8,7 @@ use sui::event;
 
 // ===== Events =====
 
+/// Emitted when interest is accrued for a given sub lending pool.
 public struct InterestAccrued has copy, drop {
     lending_pool_wrapper_id: object::ID,
     sub_lending_pool_parameters: create_lending_pools::SubLendingPoolParameters,
@@ -17,6 +18,14 @@ public struct InterestAccrued has copy, drop {
 
 // ===== Public functions =====
 
+/// Accrues interest for a given sub lending pool.
+///
+/// Args:
+///
+/// lending_pool_wrapper:   The lending pool for the given coin.
+/// clock:                  The sui clock.
+/// lending_duration:       The lending duration of the sub lending pool.
+/// interest_rate_in_bps:   The interest rate in bps of the sub lending pool.
 public entry fun accrue_interest<CoinType>(
     lending_pool_wrapper: &mut create_lending_pools::LendingPoolWrapper<CoinType>,
     clock: &clock::Clock,
@@ -42,7 +51,7 @@ public entry fun accrue_interest<CoinType>(
         utils::mul_div_u128(
             total_borrow_coins as u128,
             utils::get_taylor_compounded(interest_rate_in_bps, elapsed_time),
-            constants::COMPOUND_INTEREST_SCALING_FACTOR() as u128,
+            constants::COMPOUND_INTEREST_PRECISION() as u128,
         ) as u64;
     total_supply_coins = total_supply_coins + interest;
     total_borrow_coins = total_borrow_coins + interest;

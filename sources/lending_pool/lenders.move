@@ -4,13 +4,14 @@ use mobility_protocol::accrue_interest;
 use mobility_protocol::config;
 use mobility_protocol::create_lending_pools;
 use mobility_protocol::errors;
-use mobility_protocol::one_time_witness_registry;
 use mobility_protocol::utils;
 use sui::clock;
 use sui::event;
 
 // ===== Global storage structs =====
 
+/// Tracks the amount supplied to a sub lending pool for a given coin.
+/// Stores the shares received on the supplying coins.
 public struct Position has key, store {
     id: object::UID,
     lending_pool_wrapper_id: object::ID,
@@ -18,19 +19,17 @@ public struct Position has key, store {
     supply_shares: u64,
 }
 
-public struct PositionKey has copy, drop, store {
-    lending_pool_wrapper_id: object::ID,
-    user: address,
-}
-
 // ===== Events =====
 
+/// Emitted when a position object is created for an address.
 public struct PositionCreated has copy, drop {
     id: object::ID,
     lending_pool_wrapper_id: object::ID,
     sub_lending_pool_parameters: create_lending_pools::SubLendingPoolParameters,
 }
 
+/// Emitted when a user supplies coins to a sub lending pool, receiving shares
+/// in return.
 public struct Supplied has copy, drop {
     lending_pool_wrapper_id: object::ID,
     user: address,
@@ -39,6 +38,7 @@ public struct Supplied has copy, drop {
     shares: u64,
 }
 
+/// Emitted when a user withdraws coins from a sub lending pool, burning their shares.
 public struct Withdrawn has copy, drop {
     lending_pool_wrapper_id: object::ID,
     user: address,
@@ -49,24 +49,25 @@ public struct Withdrawn has copy, drop {
 
 // ===== Public functions =====
 
+/// Allows anyone to create a lending position object for a given sub lending pool.
+///
+/// Args:
+///
+/// lending_pool_wrapper:   The lending pool for the given coin.
+/// lending_duration:       The lending duration of the given sub lending pool.
+/// interest_rate_in_bps:   The interest rate of the given sub lending pool.
+/// ctx:                    The transaction context.
 public entry fun create_position<CoinType>(
-    one_time_witness_registry: &mut one_time_witness_registry::OneTimeWitnessRegistry,
     lending_pool_wrapper: &mut create_lending_pools::LendingPoolWrapper<CoinType>,
     lending_duration: u64,
     interest_rate_in_bps: u16,
     ctx: &mut TxContext,
 ) {
-    let lending_pool_wrapper_id = lending_pool_wrapper.get_lending_pool_id();
-    let position_key = PositionKey {
-        lending_pool_wrapper_id,
-        user: ctx.sender(),
-    };
-    one_time_witness_registry.use_witness(config::lenders_domain(), position_key, ctx);
-
     let sub_lending_pool_parameters = create_lending_pools::get_sub_lending_pool_parameters_object(
         lending_duration,
         interest_rate_in_bps,
     );
+    let lending_pool_wrapper_id = lending_pool_wrapper.get_lending_pool_id();
     let position = Position {
         id: object::new(ctx),
         lending_pool_wrapper_id,
@@ -83,6 +84,18 @@ public entry fun create_position<CoinType>(
     transfer::public_transfer(position, ctx.sender());
 }
 
+/// Allows a user with a valid lending position object to supply coins to a sub lending
+/// pool and receive interest accruing shares in return.
+///
+/// Args:
+///
+/// lending_pool_wrapper:   The lending pool for the given coin.
+/// position:               The lending position object.
+/// clock:                  The sui clock.
+/// lending_duration:       The lending duration of the sub lending pool to deposit into.
+/// interest_rate_in_bps:   The interest rate of the sub lending pool to deposit into.
+/// receiving_coin:         Coin to public receive for the deposit.
+/// ctx:                    The transaction context.
 public entry fun supply<CoinType>(
     lending_pool_wrapper: &mut create_lending_pools::LendingPoolWrapper<CoinType>,
     position: &mut Position,
@@ -93,7 +106,7 @@ public entry fun supply<CoinType>(
     ctx: &mut TxContext,
 ) {
     assert!(
-        lending_pool_wrapper.get_lending_pool_id() == position.id.to_inner(),
+        lending_pool_wrapper.get_lending_pool_id() == position.lending_pool_wrapper_id,
         errors::invalid_position(),
     );
 
@@ -104,7 +117,9 @@ public entry fun supply<CoinType>(
         interest_rate_in_bps,
     );
 
-    let amount = lending_pool_wrapper.receive_coins_for_lending_pool(receiving_coin);
+    let amount = lending_pool_wrapper.public_receive_coins_for_lending_pool<CoinType>(
+        receiving_coin,
+    );
     assert!(amount > 0, errors::amount_zero());
 
     let (
@@ -113,7 +128,7 @@ public entry fun supply<CoinType>(
         total_borrow_coins,
         total_borrow_shares,
         _,
-    ) = lending_pool_wrapper.get_sub_lending_pool_info<CoinType>(
+    ) = lending_pool_wrapper.get_sub_lending_pool_info(
         lending_duration,
         interest_rate_in_bps,
     );
@@ -150,6 +165,18 @@ public entry fun supply<CoinType>(
     });
 }
 
+/// Allows a user with a valid lending position to burn their shares and withdraw coins from a
+/// sub lending pool.
+///
+/// Args:
+///
+/// lending_pool_wrapper:   The lending pool for the given coin.
+/// position:               The lending position object.
+/// clock:                  The sui clock.
+/// amount:                 The amount of coins to withdraw.
+/// lending_duration:       The lending duration of the sub lending pool to withdraw from.
+/// interest_rate_in_bps:   The interest rate of the sub lending pool to withdraw from.
+/// ctx:                    The transaction context.
 public entry fun withdraw<CoinType>(
     lending_pool_wrapper: &mut create_lending_pools::LendingPoolWrapper<CoinType>,
     position: &mut Position,
@@ -174,7 +201,7 @@ public entry fun withdraw<CoinType>(
         total_borrow_coins,
         total_borrow_shares,
         _,
-    ) = lending_pool_wrapper.get_sub_lending_pool_info<CoinType>(
+    ) = lending_pool_wrapper.get_sub_lending_pool_info(
         lending_duration,
         interest_rate_in_bps,
     );

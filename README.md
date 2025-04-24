@@ -12,7 +12,7 @@
   <h3 align="center">Mobility Protocol</h3>
 
   <p align="center">
-    A Bitcoin collateralized, fixed term, fixed rate lending protocol on Sui
+    A Bitcoin collateralized, fixed-term, fixed-rate lending layer on Sui
     <br />
     <a href="https://github.com/mgnfy-view/mobility-protocol/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
@@ -48,7 +48,7 @@
 
 ## About The Project
 
-A Bitcoin collateralized, fixed term, fixed rate lending protocol on Sui.
+Mobility Finance is a Bitcoin collateralized, fixed-term, fixed-rate lending layer on Sui. For additional details about the project, check out the github gist [here](https://gist.github.com/mgnfy-view/976e06ce2ae1aec3bef89b04ca68ab29).
 
 ### Built With
 

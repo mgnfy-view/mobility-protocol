@@ -48,7 +48,7 @@
 
 ## About The Project
 
-Mobility Finance is a Bitcoin collateralized, fixed-term, fixed-rate lending layer on Sui. For additional details about the project, check out the github gist [here](https://gist.github.com/mgnfy-view/976e06ce2ae1aec3bef89b04ca68ab29).
+Mobility Finance is a Bitcoin collateralized, fixed-term, fixed-rate lending layer on Sui. For additional details about the project, check out the github gist [here](https://gist.github.com/mgnfy-view/ef238ed2eeae8b62c44590d7e3f9560c).
 
 ### Built With
 

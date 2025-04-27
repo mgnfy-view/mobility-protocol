@@ -46,73 +46,80 @@ public fun insufficient_balance(): u64 {
     7
 }
 
+/// Thrown when the lending pool ltv is either 0 or greater than
+/// basis points (10_000).
+/// Returns a u64 error code.
+public fun invalid_ltv(): u64 {
+    8
+}
+
 /// Thrown when the lending pool duration is not a multiple of the minimum
 /// lending pool duration defined in the `config` module.
 /// Returns a u64 error code.
 public fun invalid_lending_pool_duration(): u64 {
-    8
+    9
 }
 
 /// Thrown when the interest rate is not a multiple of the minimum
 /// interest rate defined in the `config` module.
 /// Returns a u64 error code.
 public fun invalid_interest_rate(): u64 {
-    9
+    10
 }
 
 /// Thrown when trying to create a sub lending pool that already exists.
 /// Returns a u64 error code.
 public fun sub_lending_pool_already_exists(): u64 {
-    10
+    11
 }
 
 /// Thrown when the lending pool wrapper id doesn't match the one defined in the position.
 /// Returns a u64 error code.
 public fun invalid_position(): u64 {
-    11
+    12
 }
 
 /// Thrown when there's insufficient liquidity available in the sub lending pool.
 /// Returns a u64 error code.
 public fun insufficient_liquidity(): u64 {
-    12
+    13
 }
 
 /// Thrown when the caller is not the owner of the collateral proof object.
 /// Returns a u64 error code.
 public fun not_collateral_proof_owner(): u64 {
-    13
+    14
 }
 
 /// Thrown when there's a mismatch between the expected oracle aggregator id and the one passed
 /// in the function.
 /// Returns a u64 error code.
 public fun invalid_oracle(): u64 {
-    14
+    15
 }
 
 /// Thrown when there's a mismatch between the expected lending pool id and the one passed
 /// in the function.
 /// Returns a u64 error code.
 public fun invalid_lending_pool(): u64 {
-    15
+    16
 }
 
 /// Thrown when trying to repay a debt that's already been repaid.
 /// Returns a u64 error code.
 public fun already_repaid(): u64 {
-    16
+    17
 }
 
 /// Thrown when trying to repay a debt that's already liquidated.
 /// Returns a u64 error code.
 public fun already_liquidated(): u64 {
-    17
+    18
 }
 
 /// Thrown when the amount repaid for a flash borrow is not equal to the initial
 /// borrow amount.
 /// Returns a u64 error code.
 public fun flash_borrow_failed(): u64 {
-    18
+    19
 }

@@ -2,7 +2,6 @@
 module mobility_protocol::attest_btc_deposit_tests;
 
 use mobility_protocol::attest_btc_deposit;
-use mobility_protocol::constants;
 use mobility_protocol::test_base;
 use sui::test_scenario as ts;
 use sui::test_utils as tu;
@@ -17,14 +16,7 @@ public fun creating_collateral_proof_succeeds() {
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
 
-    {
-        test_base::set_relayers(
-            &scenario,
-            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
-            vector[true, true],
-        );
-        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
-    };
+    { test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]); };
 
     let global_state = test_base::forward_scenario(
         test_base::wrap_global_state(scenario, clock),
@@ -34,10 +26,15 @@ public fun creating_collateral_proof_succeeds() {
 
     {
         let collateral_proof = scenario.take_shared<attest_btc_deposit::CollateralProof>();
+        let (
+            user,
+            btc_collateral_deposited,
+            btc_collateral_used,
+        ) = collateral_proof.get_collateral_proof_info();
 
-        tu::assert_eq(attest_btc_deposit::get_user(&collateral_proof), scenario.ctx().sender());
-        tu::assert_eq(attest_btc_deposit::get_btc_collateral_deposited(&collateral_proof), 0);
-        tu::assert_eq(attest_btc_deposit::get_btc_collateral_used(&collateral_proof), 0);
+        tu::assert_eq(user, scenario.ctx().sender());
+        tu::assert_eq(btc_collateral_deposited, 0);
+        tu::assert_eq(btc_collateral_used, 0);
 
         ts::return_shared(collateral_proof);
     };
@@ -55,14 +52,7 @@ public fun cannot_create_collateral_proof_twice() {
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
 
-    {
-        test_base::set_relayers(
-            &scenario,
-            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
-            vector[true, true],
-        );
-        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
-    };
+    { test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]); };
 
     let global_state = test_base::forward_scenario(
         test_base::wrap_global_state(scenario, clock),
@@ -94,7 +84,7 @@ public fun non_relayer_cannot_attest_deposits() {
         test_base::USER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (btc_txn_hash, amount) = get_sample_attestation_data();
+    let (btc_txn_hash, amount) = test_base::get_sample_attestation_data();
 
     {
         test_base::attest_btc_deposit(&mut scenario, btc_txn_hash, amount);
@@ -127,7 +117,7 @@ public fun relayer_can_attest_deposits() {
         test_base::RELAYER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (btc_txn_hash, amount) = get_sample_attestation_data();
+    let (btc_txn_hash, amount) = test_base::get_sample_attestation_data();
 
     {
         test_base::attest_btc_deposit(&mut scenario, btc_txn_hash, amount);
@@ -143,8 +133,7 @@ public fun relayer_can_attest_deposits() {
         let collateral_proof = scenario.take_shared<attest_btc_deposit::CollateralProof>();
 
         tu::assert_eq(
-            attest_btc_deposit::has_relayer_attested(
-                &collateral_proof,
+            collateral_proof.has_relayer_attested(
                 btc_txn_hash,
                 amount,
                 test_base::RELAYER_1(),
@@ -152,15 +141,58 @@ public fun relayer_can_attest_deposits() {
             true,
         );
         tu::assert_eq(
-            attest_btc_deposit::has_attestation_passed(&collateral_proof, btc_txn_hash, amount),
+            collateral_proof.has_attestation_passed(btc_txn_hash, amount),
             false,
         );
         tu::assert_eq(
-            attest_btc_deposit::get_attestation_count(&collateral_proof, btc_txn_hash, amount),
+            collateral_proof.get_attestation_count(btc_txn_hash, amount),
             1,
         );
 
         ts::return_shared(collateral_proof);
+    };
+
+    test_base::cleanup(test_base::wrap_global_state(scenario, clock));
+}
+
+#[test, expected_failure]
+public fun relayer_cannot_attest_the_same_deposit_twice() {
+    let global_state = test_base::setup();
+
+    let global_state = test_base::forward_scenario(
+        global_state,
+        test_base::OWNER(),
+    );
+    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+
+    {
+        test_base::set_relayers(
+            &scenario,
+            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
+            vector[true, true],
+        );
+        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
+    };
+
+    let global_state = test_base::forward_scenario(
+        test_base::wrap_global_state(scenario, clock),
+        test_base::RELAYER_1(),
+    );
+    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+    let (btc_txn_hash, amount) = test_base::get_sample_attestation_data();
+
+    {
+        test_base::attest_btc_deposit(&mut scenario, btc_txn_hash, amount);
+    };
+
+    let global_state = test_base::forward_scenario(
+        test_base::wrap_global_state(scenario, clock),
+        test_base::RELAYER_1(),
+    );
+    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+
+    {
+        test_base::attest_btc_deposit(&mut scenario, btc_txn_hash, amount);
     };
 
     test_base::cleanup(test_base::wrap_global_state(scenario, clock));
@@ -190,7 +222,7 @@ public fun attestation_passes() {
         test_base::RELAYER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (btc_txn_hash, amount) = get_sample_attestation_data();
+    let (btc_txn_hash, amount) = test_base::get_sample_attestation_data();
 
     {
         test_base::attest_btc_deposit(&mut scenario, btc_txn_hash, amount);
@@ -208,7 +240,7 @@ public fun attestation_passes() {
 
     let global_state = test_base::forward_scenario(
         test_base::wrap_global_state(scenario, clock),
-        test_base::RELAYER_2(),
+        test_base::USER_1(),
     );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
 
@@ -216,8 +248,7 @@ public fun attestation_passes() {
         let collateral_proof = scenario.take_shared<attest_btc_deposit::CollateralProof>();
 
         tu::assert_eq(
-            attest_btc_deposit::has_relayer_attested(
-                &collateral_proof,
+            collateral_proof.has_relayer_attested(
                 btc_txn_hash,
                 amount,
                 test_base::RELAYER_1(),
@@ -225,8 +256,7 @@ public fun attestation_passes() {
             true,
         );
         tu::assert_eq(
-            attest_btc_deposit::has_relayer_attested(
-                &collateral_proof,
+            collateral_proof.has_relayer_attested(
                 btc_txn_hash,
                 amount,
                 test_base::RELAYER_2(),
@@ -234,13 +264,23 @@ public fun attestation_passes() {
             true,
         );
         tu::assert_eq(
-            attest_btc_deposit::has_attestation_passed(&collateral_proof, btc_txn_hash, amount),
+            collateral_proof.has_attestation_passed(btc_txn_hash, amount),
             true,
         );
         tu::assert_eq(
-            attest_btc_deposit::get_attestation_count(&collateral_proof, btc_txn_hash, amount),
+            collateral_proof.get_attestation_count(btc_txn_hash, amount),
             2,
         );
+
+        let (
+            user,
+            btc_collateral_deposited,
+            btc_collateral_used,
+        ) = collateral_proof.get_collateral_proof_info();
+
+        tu::assert_eq(user, test_base::USER_1());
+        tu::assert_eq(btc_collateral_deposited, amount);
+        tu::assert_eq(btc_collateral_used, 0);
 
         ts::return_shared(collateral_proof);
     };
@@ -272,7 +312,7 @@ public fun cannot_attest_after_attestation_passes() {
         test_base::RELAYER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (btc_txn_hash, amount) = get_sample_attestation_data();
+    let (btc_txn_hash, amount) = test_base::get_sample_attestation_data();
 
     {
         test_base::attest_btc_deposit(&mut scenario, btc_txn_hash, amount);
@@ -301,9 +341,82 @@ public fun cannot_attest_after_attestation_passes() {
     test_base::cleanup(test_base::wrap_global_state(scenario, clock));
 }
 
-fun get_sample_attestation_data(): (vector<u8>, u64) {
-    let btc_txn_hash = b"8ccbc0e4c22bad9803cfb2b8445eae740db30f63a3d4ef9fd6d855884f6eeeb6";
-    let amount = 1 * constants::BTC_AMOUNT_SCALING_FACTOR();
+#[test]
+public fun can_initiate_withdrawal_request() {
+    let global_state = test_base::setup();
 
-    (btc_txn_hash, amount)
+    let global_state = test_base::forward_scenario(
+        global_state,
+        test_base::OWNER(),
+    );
+    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+
+    {
+        test_base::set_relayers(
+            &scenario,
+            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
+            vector[true, true],
+        );
+        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
+    };
+
+    let global_state = test_base::forward_scenario(
+        test_base::wrap_global_state(scenario, clock),
+        test_base::RELAYER_1(),
+    );
+    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+    let (btc_txn_hash, amount) = test_base::get_sample_attestation_data();
+
+    {
+        test_base::attest_btc_deposit(&mut scenario, btc_txn_hash, amount);
+    };
+
+    let global_state = test_base::forward_scenario(
+        test_base::wrap_global_state(scenario, clock),
+        test_base::RELAYER_2(),
+    );
+    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+
+    {
+        test_base::attest_btc_deposit(&mut scenario, btc_txn_hash, amount);
+    };
+
+    let global_state = test_base::forward_scenario(
+        test_base::wrap_global_state(scenario, clock),
+        test_base::USER_1(),
+    );
+    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+    let sample_btc_address = b"37jKPSmbEGwgfacCr2nayn1wTaqMAbA94Z";
+
+    {
+        let mut collateral_proof = scenario.take_shared<attest_btc_deposit::CollateralProof>();
+
+        collateral_proof.withdraw_btc(amount, sample_btc_address, scenario.ctx());
+
+        ts::return_shared(collateral_proof);
+    };
+
+    let global_state = test_base::forward_scenario(
+        test_base::wrap_global_state(scenario, clock),
+        test_base::RELAYER_2(),
+    );
+    let (scenario, clock) = test_base::unwrap_global_state(global_state);
+
+    {
+        let collateral_proof = scenario.take_shared<attest_btc_deposit::CollateralProof>();
+
+        let (
+            user,
+            btc_collateral_deposited,
+            btc_collateral_used,
+        ) = collateral_proof.get_collateral_proof_info();
+
+        tu::assert_eq(user, test_base::USER_1());
+        tu::assert_eq(btc_collateral_deposited, 0);
+        tu::assert_eq(btc_collateral_used, 0);
+
+        ts::return_shared(collateral_proof);
+    };
+
+    test_base::cleanup(test_base::wrap_global_state(scenario, clock));
 }

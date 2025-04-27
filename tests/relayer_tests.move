@@ -16,7 +16,7 @@ public fun creating_relayer_registry_object_succeeds() {
     {
         let relayer_registry = scenario.take_shared<manage_relayers::RelayerRegistry>();
 
-        tu::assert_eq(manage_relayers::get_relayer_count(&relayer_registry), 0);
+        tu::assert_eq(relayer_registry.get_relayer_count(), 0);
 
         ts::return_shared(relayer_registry);
     };
@@ -32,21 +32,21 @@ public fun relayer_can_be_set() {
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
 
     {
-        test_base::set_relayers(&scenario, vector[test_base::USER_1()], vector[true]);
+        test_base::set_relayers(&scenario, vector[test_base::RELAYER_1()], vector[true]);
     };
 
     let global_state = test_base::forward_scenario(
         test_base::wrap_global_state(scenario, clock),
-        test_base::USER_1(),
+        test_base::OWNER(),
     );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
 
     {
         let relayer_registry = scenario.take_shared<manage_relayers::RelayerRegistry>();
 
-        tu::assert_eq(manage_relayers::get_relayer_count(&relayer_registry), 1);
+        tu::assert_eq(relayer_registry.get_relayer_count(), 1);
         tu::assert_eq(
-            manage_relayers::is_whitelisted_relayer(&relayer_registry, test_base::USER_1()),
+            relayer_registry.is_whitelisted_relayer(test_base::RELAYER_1()),
             true,
         );
 
@@ -66,27 +66,27 @@ public fun multiple_relayers_can_be_set() {
     {
         test_base::set_relayers(
             &scenario,
-            vector[test_base::USER_1(), test_base::USER_2()],
+            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
             vector[true, true],
         );
     };
 
     let global_state = test_base::forward_scenario(
         test_base::wrap_global_state(scenario, clock),
-        test_base::USER_1(),
+        test_base::OWNER(),
     );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
 
     {
         let relayer_registry = scenario.take_shared<manage_relayers::RelayerRegistry>();
 
-        tu::assert_eq(manage_relayers::get_relayer_count(&relayer_registry), 2);
+        tu::assert_eq(relayer_registry.get_relayer_count(), 2);
         tu::assert_eq(
-            manage_relayers::is_whitelisted_relayer(&relayer_registry, test_base::USER_1()),
+            relayer_registry.is_whitelisted_relayer(test_base::RELAYER_1()),
             true,
         );
         tu::assert_eq(
-            manage_relayers::is_whitelisted_relayer(&relayer_registry, test_base::USER_2()),
+            relayer_registry.is_whitelisted_relayer(test_base::RELAYER_2()),
             true,
         );
 
@@ -106,7 +106,7 @@ public fun relayer_can_be_removed() {
     {
         test_base::set_relayers(
             &scenario,
-            vector[test_base::USER_1()],
+            vector[test_base::RELAYER_1()],
             vector[true],
         );
     };
@@ -120,23 +120,23 @@ public fun relayer_can_be_removed() {
     {
         test_base::set_relayers(
             &scenario,
-            vector[test_base::USER_1()],
+            vector[test_base::RELAYER_1()],
             vector[false],
         );
     };
 
     let global_state = test_base::forward_scenario(
         test_base::wrap_global_state(scenario, clock),
-        test_base::USER_1(),
+        test_base::OWNER(),
     );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
 
     {
         let relayer_registry = scenario.take_shared<manage_relayers::RelayerRegistry>();
 
-        tu::assert_eq(manage_relayers::get_relayer_count(&relayer_registry), 0);
+        tu::assert_eq(relayer_registry.get_relayer_count(), 0);
         tu::assert_eq(
-            manage_relayers::is_whitelisted_relayer(&relayer_registry, test_base::USER_1()),
+            relayer_registry.is_whitelisted_relayer(test_base::USER_1()),
             false,
         );
 
@@ -156,7 +156,7 @@ public fun multiple_relayers_can_be_removed() {
     {
         test_base::set_relayers(
             &scenario,
-            vector[test_base::USER_1(), test_base::USER_2()],
+            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
             vector[true, true],
         );
     };
@@ -170,27 +170,27 @@ public fun multiple_relayers_can_be_removed() {
     {
         test_base::set_relayers(
             &scenario,
-            vector[test_base::USER_1(), test_base::USER_2()],
+            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
             vector[false, false],
         );
     };
 
     let global_state = test_base::forward_scenario(
         test_base::wrap_global_state(scenario, clock),
-        test_base::USER_1(),
+        test_base::OWNER(),
     );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
 
     {
         let relayer_registry = scenario.take_shared<manage_relayers::RelayerRegistry>();
 
-        tu::assert_eq(manage_relayers::get_relayer_count(&relayer_registry), 0);
+        tu::assert_eq(relayer_registry.get_relayer_count(), 0);
         tu::assert_eq(
-            manage_relayers::is_whitelisted_relayer(&relayer_registry, test_base::USER_1()),
+            relayer_registry.is_whitelisted_relayer(test_base::USER_1()),
             false,
         );
         tu::assert_eq(
-            manage_relayers::is_whitelisted_relayer(&relayer_registry, test_base::USER_2()),
+            relayer_registry.is_whitelisted_relayer(test_base::USER_2()),
             false,
         );
 

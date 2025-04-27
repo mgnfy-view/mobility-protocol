@@ -12,6 +12,7 @@ rev = "testnet"
 [addresses]
 mobility_protocol = "0x0"
 btc_usd_switchboard_aggregator = "0x5d86fb1cfe2d9d77ccc107f440f793115b02154006ccc4417d90b7fe0a22a2dc"
+sui_usd_switchboard_aggregator = "0x803b7c04ecd50c055df7a4664eea34890f5841a81a45df8df26400cf84bdf639"
 
 [dev-dependencies]
 

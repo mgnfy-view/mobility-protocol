@@ -2,6 +2,7 @@
 module mobility_protocol::test_base;
 
 use mobility_protocol::attest_btc_deposit;
+use mobility_protocol::constants;
 use mobility_protocol::create_lending_pools;
 use mobility_protocol::manage_relayers;
 use mobility_protocol::one_time_witness_registry;
@@ -126,7 +127,12 @@ public fun attest_btc_deposit(scenario: &mut ts::Scenario, btc_txn_hash: vector<
     ts::return_shared(collateral_proof);
 }
 
-public fun create_lending_pool_wrapper<CoinType>(scenario: &mut ts::Scenario) {
+public fun create_lending_pool_wrapper<CoinType>(
+    scenario: &mut ts::Scenario,
+    ltv: u16,
+    grace_period: u64,
+    aggregator_id: object::ID,
+) {
     let owner_cap = scenario.take_from_sender<owner::OwnerCap>();
     let mut one_time_witness_registry = scenario.take_shared<
         one_time_witness_registry::OneTimeWitnessRegistry,
@@ -135,6 +141,9 @@ public fun create_lending_pool_wrapper<CoinType>(scenario: &mut ts::Scenario) {
     create_lending_pools::create_lending_pool_wrapper<CoinType>(
         &owner_cap,
         &mut one_time_witness_registry,
+        ltv,
+        grace_period,
+        aggregator_id,
         scenario.ctx(),
     );
 
@@ -162,6 +171,27 @@ public fun create_sub_lending_pool<CoinType>(
 
     ts::return_to_sender(scenario, owner_cap);
     ts::return_shared(lending_pool_wrapper);
+}
+
+public fun get_sample_attestation_data(): (vector<u8>, u64) {
+    let btc_txn_hash = b"8ccbc0e4c22bad9803cfb2b8445eae740db30f63a3d4ef9fd6d855884f6eeeb6";
+    let amount = 1 * constants::BASE_SCALING_FACTOR();
+
+    (btc_txn_hash, amount)
+}
+
+public fun get_sample_lending_pool_parameters(): (u16, u64, object::ID) {
+    let ltv = 6_000;
+    let grace_period = 43_200;
+
+    (ltv, grace_period, object::id_from_address(@sui_usd_switchboard_aggregator))
+}
+
+public fun get_sample_sub_lending_pool_parameters(): (u64, u16) {
+    let lending_duration = 86_400;
+    let interest_rate_in_bps = 1_000;
+
+    (lending_duration, interest_rate_in_bps)
 }
 
 public fun USER_1(): address { @0x12345 }

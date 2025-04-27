@@ -65,6 +65,12 @@ public struct LtvUpdated has copy, drop {
     ltv: u16,
 }
 
+/// Emitted when the grace period of a lending pool is updated.
+public struct GracePeriodUpdated has copy, drop {
+    lending_pool_wrapper_id: object::ID,
+    grace_period: u64,
+}
+
 /// Emitted when the aggregator id of a lending pool is updated.
 public struct AggregatorIdUpdated has copy, drop {
     lending_pool_wrapper_id: object::ID,
@@ -238,11 +244,33 @@ public entry fun update_lending_pool_ltv<CoinType>(
     lending_pool_wrapper: &mut LendingPoolWrapper<CoinType>,
     ltv: u16,
 ) {
+    assert!(ltv < constants::BASIS_POINTS() && ltv > 0, errors::invalid_ltv());
+
     lending_pool_wrapper.ltv = ltv;
 
     event::emit(LtvUpdated {
         lending_pool_wrapper_id: lending_pool_wrapper.id.to_inner(),
         ltv,
+    });
+}
+
+/// Allows the owner to update the lending pool grace period.
+///
+/// Args:
+///
+/// _owner_cap:             The owner capability object.
+/// lending_pool_wrapper:   The lending pool for the given coin.
+/// grace_period:           The new grace period.
+public entry fun update_lending_pool_grace_period<CoinType>(
+    _owner_cap: &owner::OwnerCap,
+    lending_pool_wrapper: &mut LendingPoolWrapper<CoinType>,
+    grace_period: u64,
+) {
+    lending_pool_wrapper.grace_period = grace_period;
+
+    event::emit(GracePeriodUpdated {
+        lending_pool_wrapper_id: lending_pool_wrapper.id.to_inner(),
+        grace_period,
     });
 }
 

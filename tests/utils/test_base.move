@@ -8,6 +8,7 @@ use mobility_protocol::manage_relayers;
 use mobility_protocol::one_time_witness_registry;
 use mobility_protocol::owner;
 use sui::clock;
+use sui::sui::SUI;
 use sui::test_scenario as ts;
 
 public struct GlobalState {
@@ -15,7 +16,12 @@ public struct GlobalState {
     clock: clock::Clock,
 }
 
-public fun setup(): GlobalState {
+public fun setup(
+    create_collateral_proofs: bool,
+    setup_relayers: bool,
+    setup_lending_pool: bool,
+    setup_sub_lending_pool: bool,
+): GlobalState {
     let mut scenario = ts::begin(OWNER());
     let scenario_ref = &mut scenario;
 
@@ -29,6 +35,55 @@ public fun setup(): GlobalState {
     one_time_witness_registry::init_for_testing(scenario_ref.ctx());
     owner::init_for_testing(scenario_ref.ctx());
     manage_relayers::init_for_testing(scenario_ref.ctx());
+
+    let global_state = forward_scenario(wrap_global_state(scenario, clock), OWNER());
+    let (mut scenario, clock) = unwrap_global_state(global_state);
+
+    if (create_collateral_proofs) {
+        create_collateral_proof(&mut scenario, vector[USER_1(), USER_2()]);
+    };
+
+    if (setup_relayers) {
+        set_relayers(&scenario, vector[RELAYER_1(), RELAYER_2()], vector[true, true]);
+    };
+
+    let global_state = forward_scenario(
+        wrap_global_state(scenario, clock),
+        OWNER(),
+    );
+    let (mut scenario, clock) = unwrap_global_state(global_state);
+
+    if (setup_lending_pool) {
+        let (ltv, grace_period, aggregator_id) = get_sample_lending_pool_parameters();
+        create_lending_pool_wrapper<SUI>(
+            &mut scenario,
+            ltv,
+            grace_period,
+            aggregator_id,
+        );
+    };
+
+    let global_state = forward_scenario(
+        wrap_global_state(scenario, clock),
+        OWNER(),
+    );
+    let (mut scenario, clock) = unwrap_global_state(global_state);
+
+    if (setup_sub_lending_pool) {
+        let (lending_duration, interest_rate_in_bps) = get_sample_sub_lending_pool_parameters();
+        create_sub_lending_pool<SUI>(
+            &mut scenario,
+            lending_duration,
+            interest_rate_in_bps,
+            &clock,
+        );
+    };
+
+    let global_state = forward_scenario(
+        wrap_global_state(scenario, clock),
+        OWNER(),
+    );
+    let (scenario, clock) = unwrap_global_state(global_state);
 
     GlobalState {
         scenario,

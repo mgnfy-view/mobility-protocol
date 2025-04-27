@@ -6,7 +6,7 @@ use mobility_protocol::test_base;
 
 #[test]
 public fun creating_owner_cap_object_succeeds() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, false, false);
 
     let global_state = test_base::forward_scenario(global_state, test_base::OWNER());
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -21,7 +21,7 @@ public fun creating_owner_cap_object_succeeds() {
 
 #[test, expected_failure]
 public fun no_other_user_can_have_owner_cap() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, false, false);
 
     let global_state = test_base::forward_scenario(global_state, test_base::USER_1());
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -36,7 +36,7 @@ public fun no_other_user_can_have_owner_cap() {
 
 #[test]
 public fun owner_cap_can_be_transferred() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, false, false);
 
     let global_state = test_base::forward_scenario(global_state, test_base::OWNER());
     let (scenario, clock) = test_base::unwrap_global_state(global_state);

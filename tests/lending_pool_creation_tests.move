@@ -11,7 +11,7 @@ use sui::test_utils as tu;
 
 #[test, expected_failure]
 public fun non_owner_cannot_create_lending_pool() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -34,29 +34,14 @@ public fun non_owner_cannot_create_lending_pool() {
 
 #[test]
 public fun owner_can_create_lending_pool() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, true, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
         test_base::OWNER(),
     );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (ltv, grace_period, aggregator_id) = test_base::get_sample_lending_pool_parameters();
-
-    {
-        test_base::create_lending_pool_wrapper<SUI>(
-            &mut scenario,
-            ltv,
-            grace_period,
-            aggregator_id,
-        );
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
-        test_base::OWNER(),
-    );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
+    let (ltv, grace_period, aggregator_id) = test_base::get_sample_lending_pool_parameters();
 
     {
         let lending_pool_wrapper = scenario.take_shared<
@@ -82,7 +67,7 @@ public fun owner_can_create_lending_pool() {
 
 #[test, expected_failure]
 public fun owner_cannot_create_same_lending_pool_twice() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, true, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -90,21 +75,6 @@ public fun owner_cannot_create_same_lending_pool_twice() {
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
     let (ltv, grace_period, aggregator_id) = test_base::get_sample_lending_pool_parameters();
-
-    {
-        test_base::create_lending_pool_wrapper<SUI>(
-            &mut scenario,
-            ltv,
-            grace_period,
-            aggregator_id,
-        );
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
 
     {
         test_base::create_lending_pool_wrapper<SUI>(
@@ -120,26 +90,10 @@ public fun owner_cannot_create_same_lending_pool_twice() {
 
 #[test]
 public fun owner_can_update_ltv() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, true, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (ltv, grace_period, aggregator_id) = test_base::get_sample_lending_pool_parameters();
-
-    {
-        test_base::create_lending_pool_wrapper<SUI>(
-            &mut scenario,
-            ltv,
-            grace_period,
-            aggregator_id,
-        );
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::OWNER(),
     );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -183,26 +137,10 @@ public fun owner_can_update_ltv() {
 
 #[test]
 public fun owner_can_update_grace_period() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, true, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (ltv, grace_period, aggregator_id) = test_base::get_sample_lending_pool_parameters();
-
-    {
-        test_base::create_lending_pool_wrapper<SUI>(
-            &mut scenario,
-            ltv,
-            grace_period,
-            aggregator_id,
-        );
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::OWNER(),
     );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -247,26 +185,10 @@ public fun owner_can_update_grace_period() {
 
 #[test]
 public fun owner_can_update_aggregator_id() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, true, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (ltv, grace_period, aggregator_id) = test_base::get_sample_lending_pool_parameters();
-
-    {
-        test_base::create_lending_pool_wrapper<SUI>(
-            &mut scenario,
-            ltv,
-            grace_period,
-            aggregator_id,
-        );
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::OWNER(),
     );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -310,48 +232,17 @@ public fun owner_can_update_aggregator_id() {
 
 #[test]
 public fun anyone_can_create_sub_lending_pool() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, false, true, true);
 
     let global_state = test_base::forward_scenario(
         global_state,
         test_base::OWNER(),
     );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (ltv, grace_period, aggregator_id) = test_base::get_sample_lending_pool_parameters();
-
-    {
-        test_base::create_lending_pool_wrapper<SUI>(
-            &mut scenario,
-            ltv,
-            grace_period,
-            aggregator_id,
-        );
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+    let (scenario, clock) = test_base::unwrap_global_state(global_state);
     let (
         lending_duration,
         interest_rate_in_bps,
     ) = test_base::get_sample_sub_lending_pool_parameters();
-
-    {
-        test_base::create_sub_lending_pool<SUI>(
-            &mut scenario,
-            lending_duration,
-            interest_rate_in_bps,
-            &clock,
-        )
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
-        test_base::OWNER(),
-    );
-    let (scenario, clock) = test_base::unwrap_global_state(global_state);
 
     {
         let lending_pool_wrapper = scenario.take_shared<
@@ -383,27 +274,11 @@ public fun anyone_can_create_sub_lending_pool() {
 }
 
 #[test, expected_failure]
-public fun cannot_create_same_sub_lending_pool() {
-    let global_state = test_base::setup();
+public fun cannot_create_same_sub_lending_pool_twice() {
+    let global_state = test_base::setup(false, false, true, true);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (ltv, grace_period, aggregator_id) = test_base::get_sample_lending_pool_parameters();
-
-    {
-        test_base::create_lending_pool_wrapper<SUI>(
-            &mut scenario,
-            ltv,
-            grace_period,
-            aggregator_id,
-        );
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::OWNER(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -421,46 +296,15 @@ public fun cannot_create_same_sub_lending_pool() {
         )
     };
 
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-
-    {
-        test_base::create_sub_lending_pool<SUI>(
-            &mut scenario,
-            lending_duration,
-            interest_rate_in_bps,
-            &clock,
-        )
-    };
-
     test_base::cleanup(test_base::wrap_global_state(scenario, clock));
 }
 
 #[test, expected_failure]
 public fun cannot_create_sub_lending_pool_with_incorrect_parameters() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(false, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-    let (ltv, grace_period, aggregator_id) = test_base::get_sample_lending_pool_parameters();
-
-    {
-        test_base::create_lending_pool_wrapper<SUI>(
-            &mut scenario,
-            ltv,
-            grace_period,
-            aggregator_id,
-        );
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::OWNER(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);

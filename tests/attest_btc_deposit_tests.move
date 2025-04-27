@@ -8,18 +8,10 @@ use sui::test_utils as tu;
 
 #[test]
 public fun creating_collateral_proof_succeeds() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(true, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-
-    { test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]); };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::USER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -43,8 +35,8 @@ public fun creating_collateral_proof_succeeds() {
 }
 
 #[test, expected_failure]
-public fun cannot_create_collateral_proof_twice() {
-    let global_state = test_base::setup();
+public fun cannot_create_collateral_proof_twice_for_the_same_user() {
+    let global_state = test_base::setup(true, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -53,34 +45,16 @@ public fun cannot_create_collateral_proof_twice() {
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
 
     { test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]); };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
-        test_base::USER_1(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-
-    {
-        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
-    };
 
     test_base::cleanup(test_base::wrap_global_state(scenario, clock));
 }
 
 #[test, expected_failure]
 public fun non_relayer_cannot_attest_deposits() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(true, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-
-    { test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]); };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::USER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -95,25 +69,10 @@ public fun non_relayer_cannot_attest_deposits() {
 
 #[test]
 public fun relayer_can_attest_deposits() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(true, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-
-    {
-        test_base::set_relayers(
-            &scenario,
-            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
-            vector[true, true],
-        );
-        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::RELAYER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -125,7 +84,7 @@ public fun relayer_can_attest_deposits() {
 
     let global_state = test_base::forward_scenario(
         test_base::wrap_global_state(scenario, clock),
-        test_base::RELAYER_1(),
+        test_base::USER_1(),
     );
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
 
@@ -157,25 +116,10 @@ public fun relayer_can_attest_deposits() {
 
 #[test, expected_failure]
 public fun relayer_cannot_attest_the_same_deposit_twice() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(true, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-
-    {
-        test_base::set_relayers(
-            &scenario,
-            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
-            vector[true, true],
-        );
-        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::RELAYER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -200,25 +144,10 @@ public fun relayer_cannot_attest_the_same_deposit_twice() {
 
 #[test]
 public fun attestation_passes() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(true, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-
-    {
-        test_base::set_relayers(
-            &scenario,
-            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
-            vector[true, true],
-        );
-        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::RELAYER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -290,25 +219,10 @@ public fun attestation_passes() {
 
 #[test, expected_failure]
 public fun cannot_attest_after_attestation_passes() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(true, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-
-    {
-        test_base::set_relayers(
-            &scenario,
-            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
-            vector[true, true],
-        );
-        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::RELAYER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -343,25 +257,10 @@ public fun cannot_attest_after_attestation_passes() {
 
 #[test]
 public fun can_initiate_withdrawal_request() {
-    let global_state = test_base::setup();
+    let global_state = test_base::setup(true, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
-        test_base::OWNER(),
-    );
-    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
-
-    {
-        test_base::set_relayers(
-            &scenario,
-            vector[test_base::RELAYER_1(), test_base::RELAYER_2()],
-            vector[true, true],
-        );
-        test_base::create_collateral_proof(&mut scenario, vector[test_base::USER_1()]);
-    };
-
-    let global_state = test_base::forward_scenario(
-        test_base::wrap_global_state(scenario, clock),
         test_base::RELAYER_1(),
     );
     let (mut scenario, clock) = test_base::unwrap_global_state(global_state);

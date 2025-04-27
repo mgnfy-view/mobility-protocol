@@ -8,7 +8,7 @@ use sui::test_utils as tu;
 
 #[test]
 public fun creating_relayer_registry_object_succeeds() {
-    let global_state = test_base::setup(false, false, false, false);
+    let global_state = test_base::setup(false, false, false, false, false);
 
     let global_state = test_base::forward_scenario(global_state, test_base::OWNER());
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -26,7 +26,7 @@ public fun creating_relayer_registry_object_succeeds() {
 
 #[test]
 public fun relayer_can_be_set() {
-    let global_state = test_base::setup(false, false, false, false);
+    let global_state = test_base::setup(false, false, false, false, false);
 
     let global_state = test_base::forward_scenario(global_state, test_base::OWNER());
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -58,7 +58,7 @@ public fun relayer_can_be_set() {
 
 #[test]
 public fun multiple_relayers_can_be_set() {
-    let global_state = test_base::setup(false, true, false, false);
+    let global_state = test_base::setup(false, true, false, false, false);
 
     let global_state = test_base::forward_scenario(global_state, test_base::OWNER());
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -84,7 +84,7 @@ public fun multiple_relayers_can_be_set() {
 
 #[test]
 public fun relayer_can_be_removed() {
-    let global_state = test_base::setup(false, true, false, false);
+    let global_state = test_base::setup(false, true, false, false, false);
 
     let global_state = test_base::forward_scenario(global_state, test_base::OWNER());
     let (scenario, clock) = test_base::unwrap_global_state(global_state);
@@ -120,7 +120,7 @@ public fun relayer_can_be_removed() {
 
 #[test]
 public fun multiple_relayers_can_be_removed() {
-    let global_state = test_base::setup(false, true, false, false);
+    let global_state = test_base::setup(false, true, false, false, false);
 
     let global_state = test_base::forward_scenario(global_state, test_base::OWNER());
     let (scenario, clock) = test_base::unwrap_global_state(global_state);

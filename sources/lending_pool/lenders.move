@@ -2,6 +2,7 @@ module mobility_protocol::lenders;
 
 use mobility_protocol::accrue_interest;
 use mobility_protocol::config;
+use mobility_protocol::constants;
 use mobility_protocol::create_lending_pools;
 use mobility_protocol::errors;
 use mobility_protocol::utils;
@@ -58,11 +59,22 @@ public struct Withdrawn has copy, drop {
 /// interest_rate_in_bps:   The interest rate of the given sub lending pool.
 /// ctx:                    The transaction context.
 public entry fun create_position<CoinType>(
-    lending_pool_wrapper: &mut create_lending_pools::LendingPoolWrapper<CoinType>,
+    lending_pool_wrapper: &create_lending_pools::LendingPoolWrapper<CoinType>,
     lending_duration: u64,
     interest_rate_in_bps: u16,
     ctx: &mut TxContext,
 ) {
+    assert!(
+        lending_duration % config::lending_interval() == 0
+            && lending_duration < config::max_lending_duration(),
+        errors::invalid_lending_pool_duration(),
+    );
+    assert!(
+        interest_rate_in_bps as u64 % config::interest_rate_increment_in_bps() == 0
+            && interest_rate_in_bps < constants::BASIS_POINTS(),
+        errors::invalid_interest_rate(),
+    );
+
     let sub_lending_pool_parameters = create_lending_pools::get_sub_lending_pool_parameters_object(
         lending_duration,
         interest_rate_in_bps,
@@ -239,4 +251,27 @@ public entry fun withdraw<CoinType>(
         amount,
         shares,
     });
+}
+
+// ===== View functions =====
+
+/// Gets the position details.
+///
+/// Args:
+///
+/// position: The position object.
+///
+/// Returns the lending pool wrapper id, the sub lending pool parameters the position is associated
+/// with, and the supply shares the position holds.
+public fun get_position_info(position: &Position): (object::ID, u64, u16, u64) {
+    let (lending_duration, interest_rate_in_bps) = position
+        .sub_lending_pool_parameters
+        .unwrap_sub_lending_pool_parameters_object();
+
+    (
+        position.lending_pool_wrapper_id,
+        lending_duration,
+        interest_rate_in_bps,
+        position.supply_shares,
+    )
 }

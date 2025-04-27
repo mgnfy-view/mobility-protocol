@@ -11,7 +11,7 @@ use sui::test_utils as tu;
 
 #[test, expected_failure]
 public fun non_owner_cannot_create_lending_pool() {
-    let global_state = test_base::setup(false, false, false, false);
+    let global_state = test_base::setup(false, false, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -34,7 +34,7 @@ public fun non_owner_cannot_create_lending_pool() {
 
 #[test]
 public fun owner_can_create_lending_pool() {
-    let global_state = test_base::setup(false, false, true, false);
+    let global_state = test_base::setup(false, false, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -67,7 +67,7 @@ public fun owner_can_create_lending_pool() {
 
 #[test, expected_failure]
 public fun owner_cannot_create_same_lending_pool_twice() {
-    let global_state = test_base::setup(false, false, true, false);
+    let global_state = test_base::setup(false, false, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -90,7 +90,7 @@ public fun owner_cannot_create_same_lending_pool_twice() {
 
 #[test]
 public fun owner_can_update_ltv() {
-    let global_state = test_base::setup(false, false, true, false);
+    let global_state = test_base::setup(false, false, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -137,7 +137,7 @@ public fun owner_can_update_ltv() {
 
 #[test]
 public fun owner_can_update_grace_period() {
-    let global_state = test_base::setup(false, false, true, false);
+    let global_state = test_base::setup(false, false, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -185,7 +185,7 @@ public fun owner_can_update_grace_period() {
 
 #[test]
 public fun owner_can_update_aggregator_id() {
-    let global_state = test_base::setup(false, false, true, false);
+    let global_state = test_base::setup(false, false, true, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -232,7 +232,7 @@ public fun owner_can_update_aggregator_id() {
 
 #[test]
 public fun anyone_can_create_sub_lending_pool() {
-    let global_state = test_base::setup(false, false, true, true);
+    let global_state = test_base::setup(false, false, true, true, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -275,7 +275,7 @@ public fun anyone_can_create_sub_lending_pool() {
 
 #[test, expected_failure]
 public fun cannot_create_same_sub_lending_pool_twice() {
-    let global_state = test_base::setup(false, false, true, true);
+    let global_state = test_base::setup(false, false, true, true, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -301,7 +301,7 @@ public fun cannot_create_same_sub_lending_pool_twice() {
 
 #[test, expected_failure]
 public fun cannot_create_sub_lending_pool_with_incorrect_parameters() {
-    let global_state = test_base::setup(false, true, false, false);
+    let global_state = test_base::setup(false, true, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,

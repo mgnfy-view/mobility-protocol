@@ -8,7 +8,7 @@ use sui::test_utils as tu;
 
 #[test]
 public fun creating_collateral_proof_succeeds() {
-    let global_state = test_base::setup(true, false, false, false);
+    let global_state = test_base::setup(true, false, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -36,7 +36,7 @@ public fun creating_collateral_proof_succeeds() {
 
 #[test, expected_failure]
 public fun cannot_create_collateral_proof_twice_for_the_same_user() {
-    let global_state = test_base::setup(true, false, false, false);
+    let global_state = test_base::setup(true, false, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -51,7 +51,7 @@ public fun cannot_create_collateral_proof_twice_for_the_same_user() {
 
 #[test, expected_failure]
 public fun non_relayer_cannot_attest_deposits() {
-    let global_state = test_base::setup(true, false, false, false);
+    let global_state = test_base::setup(true, false, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -69,7 +69,7 @@ public fun non_relayer_cannot_attest_deposits() {
 
 #[test]
 public fun relayer_can_attest_deposits() {
-    let global_state = test_base::setup(true, true, false, false);
+    let global_state = test_base::setup(true, true, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -116,7 +116,7 @@ public fun relayer_can_attest_deposits() {
 
 #[test, expected_failure]
 public fun relayer_cannot_attest_the_same_deposit_twice() {
-    let global_state = test_base::setup(true, true, false, false);
+    let global_state = test_base::setup(true, true, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -144,7 +144,7 @@ public fun relayer_cannot_attest_the_same_deposit_twice() {
 
 #[test]
 public fun attestation_passes() {
-    let global_state = test_base::setup(true, true, false, false);
+    let global_state = test_base::setup(true, true, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -219,7 +219,7 @@ public fun attestation_passes() {
 
 #[test, expected_failure]
 public fun cannot_attest_after_attestation_passes() {
-    let global_state = test_base::setup(true, true, false, false);
+    let global_state = test_base::setup(true, true, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,
@@ -257,7 +257,7 @@ public fun cannot_attest_after_attestation_passes() {
 
 #[test]
 public fun can_initiate_withdrawal_request() {
-    let global_state = test_base::setup(true, true, false, false);
+    let global_state = test_base::setup(true, true, false, false, false);
 
     let global_state = test_base::forward_scenario(
         global_state,

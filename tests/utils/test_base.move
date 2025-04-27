@@ -4,10 +4,12 @@ module mobility_protocol::test_base;
 use mobility_protocol::attest_btc_deposit;
 use mobility_protocol::constants;
 use mobility_protocol::create_lending_pools;
+use mobility_protocol::lenders;
 use mobility_protocol::manage_relayers;
 use mobility_protocol::one_time_witness_registry;
 use mobility_protocol::owner;
 use sui::clock;
+use sui::coin;
 use sui::sui::SUI;
 use sui::test_scenario as ts;
 
@@ -21,6 +23,7 @@ public fun setup(
     setup_relayers: bool,
     setup_lending_pool: bool,
     setup_sub_lending_pool: bool,
+    create_sub_lending_pool_positions: bool,
 ): GlobalState {
     let mut scenario = ts::begin(OWNER());
     let scenario_ref = &mut scenario;
@@ -68,9 +71,9 @@ public fun setup(
         OWNER(),
     );
     let (mut scenario, clock) = unwrap_global_state(global_state);
+    let (lending_duration, interest_rate_in_bps) = get_sample_sub_lending_pool_parameters();
 
     if (setup_sub_lending_pool) {
-        let (lending_duration, interest_rate_in_bps) = get_sample_sub_lending_pool_parameters();
         create_sub_lending_pool<SUI>(
             &mut scenario,
             lending_duration,
@@ -81,9 +84,31 @@ public fun setup(
 
     let global_state = forward_scenario(
         wrap_global_state(scenario, clock),
-        OWNER(),
+        USER_1(),
     );
-    let (scenario, clock) = unwrap_global_state(global_state);
+    let (mut scenario, clock) = unwrap_global_state(global_state);
+
+    if (create_sub_lending_pool_positions) {
+        create_sub_lending_pool_positions<SUI>(
+            &mut scenario,
+            lending_duration,
+            interest_rate_in_bps,
+        );
+    };
+
+    let global_state = forward_scenario(
+        wrap_global_state(scenario, clock),
+        USER_2(),
+    );
+    let (mut scenario, clock) = unwrap_global_state(global_state);
+
+    if (create_sub_lending_pool_positions) {
+        create_sub_lending_pool_positions<SUI>(
+            &mut scenario,
+            lending_duration,
+            interest_rate_in_bps,
+        );
+    };
 
     GlobalState {
         scenario,
@@ -120,6 +145,12 @@ public fun unwrap_global_state(global_state: GlobalState): (ts::Scenario, clock:
 
 public fun wrap_global_state(scenario: ts::Scenario, clock: clock::Clock): GlobalState {
     GlobalState { scenario, clock }
+}
+
+public fun get_coins<CoinType>(scenario: &mut ts::Scenario, user: address, amount: u64) {
+    let coins = coin::mint_for_testing<CoinType>(amount, scenario.ctx());
+
+    transfer::public_transfer(coins, user);
 }
 
 public fun set_relayers(
@@ -225,6 +256,25 @@ public fun create_sub_lending_pool<CoinType>(
     );
 
     ts::return_to_sender(scenario, owner_cap);
+    ts::return_shared(lending_pool_wrapper);
+}
+
+public fun create_sub_lending_pool_positions<CoinType>(
+    scenario: &mut ts::Scenario,
+    lending_duration: u64,
+    interest_rate_in_bps: u16,
+) {
+    let lending_pool_wrapper = scenario.take_shared<
+        create_lending_pools::LendingPoolWrapper<CoinType>,
+    >();
+
+    lenders::create_position(
+        &lending_pool_wrapper,
+        lending_duration,
+        interest_rate_in_bps,
+        scenario.ctx(),
+    );
+
     ts::return_shared(lending_pool_wrapper);
 }
 

@@ -206,7 +206,10 @@ public entry fun withdraw_btc(
     collateral_proof: &mut CollateralProof,
     amount: u64,
     btc_address: vector<u8>,
+    ctx: &mut TxContext,
 ) {
+    assert!(collateral_proof.user == ctx.sender(), errors::not_collateral_proof_owner());
+
     let max_withdrawable_amount =
         collateral_proof.btc_collateral_deposited - collateral_proof.btc_collateral_used;
     assert!(amount <= max_withdrawable_amount, errors::insufficient_balance());

@@ -438,3 +438,75 @@ public fun multiple_users_can_withdraw_from_sub_lending_pool_and_burn_shares() {
 
     test_base::cleanup(test_base::wrap_global_state(scenario, clock));
 }
+
+#[test]
+public fun user_can_withdraw_partial_funds() {
+    let global_state = test_base::setup(false, false, true, true, true);
+
+    let global_state = test_base::forward_scenario(
+        global_state,
+        test_base::USER_1(),
+    );
+    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+    let (
+        lending_duration,
+        interest_rate_in_bps,
+    ) = test_base::get_sample_sub_lending_pool_parameters();
+    let supply_amount = 1_000_000_000;
+
+    {
+        test_base::supply<SUI>(
+            &mut scenario,
+            &clock,
+            lending_duration,
+            interest_rate_in_bps,
+            supply_amount,
+        );
+    };
+
+    let global_state = test_base::forward_scenario(
+        test_base::wrap_global_state(scenario, clock),
+        test_base::USER_1(),
+    );
+    let (mut scenario, clock) = test_base::unwrap_global_state(global_state);
+
+    {
+        test_base::withdraw<SUI>(
+            &mut scenario,
+            &clock,
+            lending_duration,
+            interest_rate_in_bps,
+            supply_amount / 2,
+        );
+    };
+
+    let global_state = test_base::forward_scenario(
+        test_base::wrap_global_state(scenario, clock),
+        test_base::USER_1(),
+    );
+    let (scenario, clock) = test_base::unwrap_global_state(global_state);
+
+    {
+        let lending_pool_wrapper = scenario.take_shared<
+            create_lending_pools::LendingPoolWrapper<SUI>,
+        >();
+        let (balance, _, _, _) = lending_pool_wrapper.get_lending_pool_info();
+        let position = scenario.take_from_sender<lenders::Position>();
+        let (_, _, _, shares) = position.get_position_info();
+
+        let expected_shares =
+            utils::mul_div_u64(
+            supply_amount,
+            config::virtual_shares(),
+            config::virtual_coins(),
+        ) / 2;
+
+        tu::assert_eq(shares, expected_shares);
+        tu::assert_eq(balance, supply_amount / 2);
+
+        ts::return_shared(lending_pool_wrapper);
+        scenario.return_to_sender(position);
+    };
+
+    test_base::cleanup(test_base::wrap_global_state(scenario, clock));
+}

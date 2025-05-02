@@ -148,9 +148,9 @@ public fun wrap_global_state(scenario: ts::Scenario, clock: clock::Clock): Globa
 }
 
 public fun get_coins<CoinType>(scenario: &mut ts::Scenario, user: address, amount: u64) {
-    let coins = coin::mint_for_testing<CoinType>(amount, scenario.ctx());
+    let coin = coin::mint_for_testing<CoinType>(amount, scenario.ctx());
 
-    transfer::public_transfer(coins, user);
+    transfer::public_transfer(coin, user);
 }
 
 public fun set_relayers(

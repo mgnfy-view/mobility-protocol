@@ -7,6 +7,7 @@ use mobility_protocol::create_lending_pools;
 use mobility_protocol::errors;
 use mobility_protocol::utils;
 use sui::clock;
+use sui::coin;
 use sui::event;
 
 // ===== Global storage structs =====
@@ -106,7 +107,7 @@ public entry fun create_position<CoinType>(
 /// clock:                  The sui clock.
 /// lending_duration:       The lending duration of the sub lending pool to deposit into.
 /// interest_rate_in_bps:   The interest rate of the sub lending pool to deposit into.
-/// receiving_coin:         Coin to public receive for the deposit.
+/// coin:                   Coin to supply.
 /// ctx:                    The transaction context.
 public entry fun supply<CoinType>(
     lending_pool_wrapper: &mut create_lending_pools::LendingPoolWrapper<CoinType>,
@@ -114,7 +115,7 @@ public entry fun supply<CoinType>(
     clock: &clock::Clock,
     lending_duration: u64,
     interest_rate_in_bps: u16,
-    receiving_coin: transfer::Receiving<sui::coin::Coin<CoinType>>,
+    coin: coin::Coin<CoinType>,
     ctx: &mut TxContext,
 ) {
     assert!(
@@ -129,10 +130,11 @@ public entry fun supply<CoinType>(
         interest_rate_in_bps,
     );
 
-    let amount = lending_pool_wrapper.public_receive_coins_for_lending_pool<CoinType>(
-        receiving_coin,
-    );
+    let amount = coin.value();
     assert!(amount > 0, errors::amount_zero());
+    lending_pool_wrapper.transfer_coins_to_lending_pool<CoinType>(
+        coin,
+    );
 
     let (
         mut total_supply_coins,

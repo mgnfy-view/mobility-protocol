@@ -391,23 +391,6 @@ public(package) fun update_sub_lending_pool_info<CoinType>(
     sub_lending_pool_info.last_update_timestamp = utils::get_time_in_seconds(clock);
 }
 
-/// Allows public receipt of coins into the lending pool wrapper from friend modules.
-///
-/// Args:
-///
-/// lending_pool_wrapper:   The lending pool for the given coin.
-/// receiving_coin:         The coin to receive.
-public(package) fun public_receive_coins_for_lending_pool<CoinType>(
-    lending_pool_wrapper: &mut LendingPoolWrapper<CoinType>,
-    receiving_coin: transfer::Receiving<coin::Coin<CoinType>>,
-): u64 {
-    let coin = transfer::public_receive(&mut lending_pool_wrapper.id, receiving_coin);
-    let amount = coin.value();
-    lending_pool_wrapper.balance.join(coin::into_balance(coin));
-
-    amount
-}
-
 /// Allows friend modules to transfer coins to the lending pool wrapper.
 ///
 /// Args:

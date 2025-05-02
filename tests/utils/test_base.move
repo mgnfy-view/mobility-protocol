@@ -110,6 +110,10 @@ public fun setup(
         );
     };
 
+    let initial_mint_amount = 1_000_000_000_000;
+    get_coins<SUI>(&mut scenario, USER_1(), initial_mint_amount);
+    get_coins<SUI>(&mut scenario, USER_2(), initial_mint_amount);
+
     GlobalState {
         scenario,
         clock,
@@ -276,6 +280,61 @@ public fun create_sub_lending_pool_positions<CoinType>(
     );
 
     ts::return_shared(lending_pool_wrapper);
+}
+
+public fun supply<CoinType>(
+    scenario: &mut ts::Scenario,
+    clock: &clock::Clock,
+    lending_duration: u64,
+    interest_rate_in_bps: u16,
+    supply_amount: u64,
+) {
+    let mut lending_pool_wrapper = scenario.take_shared<
+        create_lending_pools::LendingPoolWrapper<CoinType>,
+    >();
+    let mut position = scenario.take_from_sender<lenders::Position>();
+    let mut coin = scenario.take_from_sender<coin::Coin<CoinType>>();
+    let supply_coin = coin.split(supply_amount, scenario.ctx());
+
+    lenders::supply<CoinType>(
+        &mut lending_pool_wrapper,
+        &mut position,
+        clock,
+        lending_duration,
+        interest_rate_in_bps,
+        supply_coin,
+        scenario.ctx(),
+    );
+
+    ts::return_shared(lending_pool_wrapper);
+    scenario.return_to_sender(position);
+    ts::return_to_sender(scenario, coin);
+}
+
+public fun withdraw<CoinType>(
+    scenario: &mut ts::Scenario,
+    clock: &clock::Clock,
+    lending_duration: u64,
+    interest_rate_in_bps: u16,
+    withdraw_amount: u64,
+) {
+    let mut lending_pool_wrapper = scenario.take_shared<
+        create_lending_pools::LendingPoolWrapper<CoinType>,
+    >();
+    let mut position = scenario.take_from_sender<lenders::Position>();
+
+    lenders::withdraw(
+        &mut lending_pool_wrapper,
+        &mut position,
+        clock,
+        withdraw_amount,
+        lending_duration,
+        interest_rate_in_bps,
+        scenario.ctx(),
+    );
+
+    ts::return_shared(lending_pool_wrapper);
+    scenario.return_to_sender(position);
 }
 
 public fun get_sample_attestation_data(): (vector<u8>, u64) {
